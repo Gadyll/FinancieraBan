@@ -1,0 +1,43 @@
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.core.config import settings
+from app.core.exceptions import MyBankException
+from app.api.v1.router import router as v1_router
+
+app = FastAPI(title=settings.APP_NAME)
+
+# CORS
+origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins if origins else ["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Routers
+app.include_router(v1_router)
+
+# Health check
+@app.get("/health")
+async def health():
+    return {"status": "ok", "app": settings.APP_NAME}
+
+# Handler general para excepciones personalizadas
+@app.exception_handler(MyBankException)
+async def mybank_exception_handler(request: Request, exc: MyBankException):
+    return JSONResponse(
+        status_code=400,
+        content={"error": exc.message, "details": exc.details},
+    )
+
+# Handler genérico (no filtra info sensible)
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Error interno del servidor"},
+    )
