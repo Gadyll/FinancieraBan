@@ -6,7 +6,16 @@ from app.core.config import settings
 from app.core.exceptions import MyBankException
 from app.api.v1.router import router as v1_router
 
+from fastapi.staticfiles import StaticFiles
+import os
+
 app = FastAPI(title=settings.APP_NAME)
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # backend-api/
+TICKETS_DIR = os.path.join(BASE_DIR, "storage", "tickets")
+os.makedirs(TICKETS_DIR, exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "storage")), name="static")
 
 # CORS
 origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
