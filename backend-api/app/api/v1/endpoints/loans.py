@@ -11,6 +11,13 @@ from app.models.user import User, UserRole
 from app.schemas.loan import LoanCreate, LoanOut, ScheduleOut, LoanWithScheduleOut
 from app.services.loan_service import create_loan_with_schedule
 
+from datetime import date
+from sqlalchemy import func
+from app.models.loan_schedule import LoanSchedule
+from app.models.payment import Payment
+from app.schemas.loan_summary import LoanSummaryOut
+
+
 router = APIRouter(prefix="/loans")
 
 
@@ -141,4 +148,90 @@ def my_loans(
         .filter(ClientAssignment.is_active == True)  # noqa
         .order_by(Loan.id.desc())
         .all()
+    )
+
+@router.get("/{loan_id}/summary", response_model=LoanSummaryOut)
+def loan_summary(
+    loan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Resumen del préstamo:
+    - saldo restante
+    - total pagado
+    - próxima cuota (PENDING o PARTIAL)
+    - número de cuotas vencidas
+    Permisos:
+    - ADMIN: todo
+    - USER: solo si cliente asignado
+    """
+    loan = db.query(Loan).filter(Loan.id == loan_id).first()
+    if not loan:
+        raise HTTPException(status_code=404, detail="Préstamo no encontrado")
+
+    # Permisos (igual que schedule)
+    if current_user.role != UserRole.ADMIN:
+        allowed = (
+            db.query(ClientAssignment)
+            .filter(ClientAssignment.client_id == loan.client_id)
+            .filter(ClientAssignment.user_id == current_user.id)
+            .filter(ClientAssignment.is_active == True)  # noqa
+            .first()
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este préstamo")
+
+    # Total pagado
+    total_paid = (
+        db.query(func.coalesce(func.sum(Payment.amount_paid), 0))
+        .filter(Payment.loan_id == loan_id)
+        .scalar()
+    )
+
+    # Saldo restante (sumatoria de amount_due no pagadas)
+    remaining_balance = (
+        db.query(func.coalesce(func.sum(LoanSchedule.amount_due), 0))
+        .filter(LoanSchedule.loan_id == loan_id)
+        .filter(LoanSchedule.status != "PAID")
+        .scalar()
+    )
+
+    # Próxima cuota: la primera que esté PENDING o PARTIAL
+    next_row = (
+        db.query(LoanSchedule)
+        .filter(LoanSchedule.loan_id == loan_id)
+        .filter(LoanSchedule.status.in_(["PENDING", "PARTIAL"]))
+        .order_by(LoanSchedule.installment_number.asc())
+        .first()
+    )
+
+    # Cuotas vencidas: due_date < hoy y status != PAID
+    today = date.today()
+    overdue_count = (
+        db.query(func.count(LoanSchedule.id))
+        .filter(LoanSchedule.loan_id == loan_id)
+        .filter(LoanSchedule.status != "PAID")
+        .filter(LoanSchedule.due_date < today)
+        .scalar()
+    )
+
+    return LoanSummaryOut(
+        loan_id=loan.id,
+        client_id=loan.client_id,
+        cycle_number=loan.cycle_number,
+        status=str(loan.status),
+        frequency=str(loan.frequency),
+        payments_count=loan.payments_count,
+
+        total_amount=loan.total_amount,
+        total_paid=total_paid,
+        remaining_balance=remaining_balance,
+
+        next_installment_number=(next_row.installment_number if next_row else None),
+        next_due_date=(next_row.due_date if next_row else None),
+        next_amount_due=(next_row.amount_due if next_row else None),
+        next_status=(next_row.status if next_row else None),
+
+        overdue_count=int(overdue_count or 0),
     )
