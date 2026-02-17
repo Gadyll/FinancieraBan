@@ -1,0 +1,20 @@
+users-page { display: grid; gap: 16px; }
+
+.users-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; }
+.users-title { font-size: 22px; margin: 0; }
+.users-sub { opacity: .75; margin: 6px 0 0; }
+
+.users-form { display:grid; gap: 12px; max-width: 520px; }
+.field label { display:block; font-size: 13px; margin-bottom: 6px; opacity:.85; }
+.hint { display:block; font-size: 12px; opacity: .65; margin-top: 6px; }
+
+.inline { display:inline-block; margin-left: 8px; }
+.right { text-align:right; }
+
+.row-muted { opacity: .65; }
+
+.badge { font-size: 12px; padding: 4px 8px; border-radius: 999px; }
+.badge.ok { background: rgba(34,197,94,.15); }
+.badge.off { background: rgba(239,68,68,.12); }
+
+.muted { opacity: .65; } 

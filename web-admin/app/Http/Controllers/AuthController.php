@@ -19,43 +19,49 @@ class AuthController extends Controller
             'password' => ['required','string'],
         ]);
 
-        $result = $api->login($data['username'], $data['password']);
+        $res = $api->login($data['username'], $data['password']);
 
-        if (!$result['ok']) {
-            return back()
-                ->withInput()
-                ->withErrors(['login' => 'Credenciales inválidas o API no disponible.']);
+        if (!$res['ok']) {
+            return back()->withErrors(['login' => 'Credenciales inválidas o API no disponible.'])->withInput();
         }
 
-        $tokens = $result['data'];
+        $access = $res['data']['access_token'] ?? null;
+        $refresh = $res['data']['refresh_token'] ?? null;
+
+        if (!$access || !$refresh) {
+            return back()->withErrors(['login' => 'Respuesta inválida de la API.'])->withInput();
+        }
 
         session([
-            'mybank_access_token' => $tokens['access_token'] ?? null,
-            'mybank_refresh_token' => $tokens['refresh_token'] ?? null,
+            'mybank_access_token' => $access,
+            'mybank_refresh_token' => $refresh,
+            'mybank_token_expires_at' => $api->jwtExp($access),
         ]);
 
-        // Validar /me
-        $me = $api->me(session('mybank_access_token'));
-
-        if (!$me['ok']) {
-            session()->forget(['mybank_access_token','mybank_refresh_token']);
-            return back()
-                ->withInput()
-                ->withErrors(['login' => 'Login OK pero no se pudo validar /auth/me.']);
+        // Guardar /me
+        $me = $api->me($access);
+        if ($me['ok']) {
+            session(['mybank_user' => $me['data']]);
         }
-
-        session(['mybank_user' => $me['data']]);
 
         return redirect()->route('dashboard');
     }
 
     public function logout(Request $request)
     {
-        session()->forget(['mybank_access_token','mybank_refresh_token','mybank_user']);
+        // Limpieza total
+        $request->session()->forget([
+            'mybank_access_token',
+            'mybank_refresh_token',
+            'mybank_token_expires_at',
+            'mybank_user',
+        ]);
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
     }
 }
+
 

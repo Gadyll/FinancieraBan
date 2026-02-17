@@ -1,0 +1,21 @@
+.dash-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.dash-head h1{ margin:0; font-size:22px; }
+.dash-filter{ display:flex; gap:10px; align-items:center; }
+.dash-filter input, .dash-filter button{
+  height:38px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
+  background:#0b1326; color:#e9eefc; padding:0 10px;
+}
+.dash-filter button{ cursor:pointer; background:#2f6bff; border:0; font-weight:600; }
+.dash-alert{ margin:14px 0; padding:10px 12px; border-radius:10px; background:rgba(255,80,80,.12); border:1px solid rgba(255,80,80,.25); }
+
+.dash-cards{ margin-top:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.card{ background:#111a2e; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:14px; }
+.card-title{ opacity:.8; font-size:12px; letter-spacing:.4px; }
+.card-value{ font-size:22px; font-weight:800; margin-top:6px; }
+.card-sub{ opacity:.7; font-size:12px; margin-top:6px; }
+
+.dash-table{ margin-top:18px; background:#111a2e; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:14px; }
+.dash-table h2{ margin:0 0 12px 0; font-size:16px; }
+table{ width:100%; border-collapse:collapse; }
+th, td{ text-align:left; padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.08); font-size:13px; }
+th{ opacity:.8; font-weight:700; }
