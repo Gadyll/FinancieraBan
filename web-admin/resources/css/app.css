@@ -349,3 +349,21 @@ a:hover { text-decoration: none; }
 .right   { text-align: right; }
 .inline  { display: inline-block; }
 .gap-2   { gap: .5rem; }
+
+/* ===== Tables: prevent action buttons from being cut ===== */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-clean td, .table-clean th {
+  white-space: nowrap;
+}
+
+.table-clean td.right {
+  white-space: nowrap;
+}
+
+.table-clean .btn {
+  white-space: nowrap;
+}

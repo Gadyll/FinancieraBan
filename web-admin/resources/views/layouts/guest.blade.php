@@ -7,24 +7,32 @@
 
     <title>@yield('title', 'MYBANK')</title>
 
-    {{-- Vite --}}
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- ✅ Vite (con fallback si no hay build) --}}
+    @php
+        $manifest = public_path('build/manifest.json');
+    @endphp
 
-    {{-- Extras opcionales para head (si algún día lo ocupas) --}}
-    @stack('head')
+    @if(file_exists($manifest))
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @else
+        {{-- Fallback sin Vite build (evita ViteManifestNotFoundException) --}}
+        <link rel="stylesheet" href="{{ asset('fallback/app.css') }}">
+        <script defer src="{{ asset('fallback/app.js') }}"></script>
+    @endif
 
-    {{-- ✅ Estilos específicos por vista (login) --}}
+    {{-- ✅ Para estilos específicos por vista (login) --}}
     @stack('styles')
 </head>
-<body style="min-height:100vh; margin:0;">
+<body>
     <main>
         @yield('content')
     </main>
 
-    {{-- ✅ Scripts específicos por vista --}}
+    {{-- ✅ Para scripts específicos por vista --}}
     @stack('scripts')
 </body>
 </html>
+
 
 
 

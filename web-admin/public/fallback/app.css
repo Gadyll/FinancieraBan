@@ -1,0 +1,2 @@
+/* Fallback mínimo si Vite no está compilado */
+body { font-family: system-ui, Arial, sans-serif; margin:0; }

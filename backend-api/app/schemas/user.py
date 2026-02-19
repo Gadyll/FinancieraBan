@@ -1,40 +1,30 @@
-from enum import Enum
-import re
-
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional, Literal
 
 
-class UserRole(str, Enum):
-    USER = "USER"
-
+# =========================
+# REQUESTS
+# =========================
 
 class UserCreate(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr | None = None  # ✅ entrada estricta (si quieres)
-    password: str = Field(..., min_length=6, max_length=72)
-    role: UserRole = UserRole.USER
+    username: str = Field(..., min_length=3, max_length=32, pattern=r"^[a-zA-Z0-9._-]+$")
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=72)  # bcrypt safe limit
+    role: Literal["USER"] = "USER"  # Solo cobradores por endpoint
 
-    @field_validator("username")
-    @classmethod
-    def validate_username(cls, v: str) -> str:
-        if not re.match(r"^[a-zA-Z0-9_-]+$", v):
-            raise ValueError("Username solo puede contener letras, números, guiones y guión bajo")
-        return v.lower()
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if not any(c.isupper() for c in v):
-            raise ValueError("Password debe contener al menos una mayúscula")
-        if not any(c.isdigit() for c in v):
-            raise ValueError("Password debe contener al menos un número")
-        return v
+class UserLogin(BaseModel):
+    username: str
+    password: str
 
 
-class UserOut(BaseModel):
+# =========================
+# RESPONSES
+# =========================
+
+class UserResponse(BaseModel):
     id: int
     username: str
-    email: str | None  # ✅ salida flexible (evita 500 con .local)
+    email: Optional[str] = None
     role: str
     is_active: bool
 

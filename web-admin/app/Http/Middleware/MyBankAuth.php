@@ -5,13 +5,12 @@ namespace App\Http\Middleware;
 use App\Services\MyBankApi;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 class MyBankAuth
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        $access = session('mybank_access_token');
+        $access  = session('mybank_access_token');
         $refresh = session('mybank_refresh_token');
 
         if (!$access || !$refresh) {
@@ -19,61 +18,72 @@ class MyBankAuth
             return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
         }
 
-        // Si ya está expirado (por exp del JWT), intentamos refresh ANTES de llamar a /me
+        // ✅ exp guardado como int timestamp
         $exp = session('mybank_token_expires_at');
-        if ($exp && time() >= ((int)$exp - 15)) { // 15s de margen
-            $api = app(MyBankApi::class);
-            $ref = $api->refresh($refresh);
 
+        // si expira (margen 15s) intentamos refresh ANTES de llamar /me
+        if (is_numeric($exp) && time() >= ((int)$exp - 15)) {
+            $api = app(MyBankApi::class);
+
+            $ref = $api->refresh($refresh);
             if (!$ref['ok']) {
                 $this->flushSession();
                 return redirect()->route('login')->withErrors(['login' => 'Sesión expirada. Inicia sesión nuevamente.']);
             }
 
+            $newAccess  = $ref['data']['access_token'] ?? null;
+            $newRefresh = $ref['data']['refresh_token'] ?? null;
+
+            if (!$newAccess || !$newRefresh) {
+                $this->flushSession();
+                return redirect()->route('login')->withErrors(['login' => 'Refresh inválido.']);
+            }
+
             session([
-                'mybank_access_token' => $ref['data']['access_token'] ?? null,
-                'mybank_refresh_token' => $ref['data']['refresh_token'] ?? null,
-                'mybank_token_expires_at' => $api->jwtExp($ref['data']['access_token'] ?? null),
+                'mybank_access_token'     => $newAccess,
+                'mybank_refresh_token'    => $newRefresh,
+                'mybank_token_expires_at' => $api->jwtExp($newAccess),
             ]);
 
-            $access = session('mybank_access_token');
+            $access = $newAccess;
         }
 
-        // Validar contra API (/auth/me). Si 401, intenta refresh 1 vez
+        // Validar /me
         $api = app(MyBankApi::class);
         $me = $api->me($access);
 
-        if ($me['ok']) {
-            session(['mybank_user' => $me['data']]);
-            return $next($request);
-        }
-
-        if (($me['status'] ?? null) === 401) {
+        if (!$me['ok']) {
+            // Si access falló, intentamos refresh 1 vez
             $ref = $api->refresh($refresh);
-
             if (!$ref['ok']) {
                 $this->flushSession();
-                return redirect()->route('login')->withErrors(['login' => 'Sesión expirada. Inicia sesión nuevamente.']);
+                return redirect()->route('login')->withErrors(['login' => 'Sesión inválida. Inicia sesión nuevamente.']);
+            }
+
+            $newAccess  = $ref['data']['access_token'] ?? null;
+            $newRefresh = $ref['data']['refresh_token'] ?? null;
+
+            if (!$newAccess || !$newRefresh) {
+                $this->flushSession();
+                return redirect()->route('login')->withErrors(['login' => 'Refresh inválido.']);
             }
 
             session([
-                'mybank_access_token' => $ref['data']['access_token'] ?? null,
-                'mybank_refresh_token' => $ref['data']['refresh_token'] ?? null,
-                'mybank_token_expires_at' => $api->jwtExp($ref['data']['access_token'] ?? null),
+                'mybank_access_token'     => $newAccess,
+                'mybank_refresh_token'    => $newRefresh,
+                'mybank_token_expires_at' => $api->jwtExp($newAccess),
             ]);
 
-            $me2 = $api->me(session('mybank_access_token'));
-            if (!$me2['ok']) {
+            $me = $api->me($newAccess);
+            if (!$me['ok']) {
                 $this->flushSession();
-                return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
+                return redirect()->route('login')->withErrors(['login' => 'No se pudo validar la sesión.']);
             }
-
-            session(['mybank_user' => $me2['data']]);
-            return $next($request);
         }
 
-        // Cualquier otro error
-        return redirect()->route('login')->withErrors(['login' => 'No se pudo validar sesión contra la API.']);
+        session(['mybank_user' => $me['data']]);
+
+        return $next($request);
     }
 
     private function flushSession(): void
@@ -86,6 +96,7 @@ class MyBankAuth
         ]);
     }
 }
+
 
 
 

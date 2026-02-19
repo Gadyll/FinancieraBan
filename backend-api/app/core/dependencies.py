@@ -8,10 +8,17 @@ from app.models.user import User, UserRole
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
+    """
+    Devuelve el usuario autenticado por JWT (access token).
+    - Si no hay token => 401
+    - Si token inválido => 401
+    - Si user no existe o está inactivo => 401
+    """
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -23,7 +30,7 @@ def get_current_user(
     try:
         payload = decode_access_token(token)
         user_id = int(get_subject(payload))
-    except ValueError as e:
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
@@ -38,10 +45,15 @@ def get_current_user(
 
     return user
 
+
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != UserRole.ADMIN:
+    """
+    Dependency: solo ADMIN puede pasar.
+    """
+    # Si tu modelo usa enum UserRole, esto es lo más robusto:
+    if current_user.role not in (UserRole.ADMIN, "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso denegado: se requiere rol ADMIN",
+            detail="Solo administradores pueden realizar esta acción",
         )
     return current_user

@@ -12,33 +12,34 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request, MyBankApi $api)
+    public function login(Request $request)
     {
         $data = $request->validate([
             'username' => ['required','string'],
             'password' => ['required','string'],
         ]);
 
+        $api = app(MyBankApi::class);
         $res = $api->login($data['username'], $data['password']);
 
         if (!$res['ok']) {
-            return back()->withErrors(['login' => 'Credenciales inválidas o API no disponible.'])->withInput();
+            $msg = $res['data']['detail'] ?? $res['data']['message'] ?? 'Credenciales inválidas.';
+            return back()->withInput()->withErrors(['login' => $msg]);
         }
 
-        $access = $res['data']['access_token'] ?? null;
+        $access  = $res['data']['access_token']  ?? null;
         $refresh = $res['data']['refresh_token'] ?? null;
 
         if (!$access || !$refresh) {
-            return back()->withErrors(['login' => 'Respuesta inválida de la API.'])->withInput();
+            return back()->withInput()->withErrors(['login' => 'Respuesta inválida del servidor (tokens).']);
         }
 
         session([
-            'mybank_access_token' => $access,
-            'mybank_refresh_token' => $refresh,
-            'mybank_token_expires_at' => $api->jwtExp($access),
+            'mybank_access_token'     => $access,
+            'mybank_refresh_token'    => $refresh,
+            'mybank_token_expires_at' => $api->jwtExp($access), // ✅ int timestamp
         ]);
 
-        // Guardar /me
         $me = $api->me($access);
         if ($me['ok']) {
             session(['mybank_user' => $me['data']]);
@@ -49,14 +50,6 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        // Limpieza total
-        $request->session()->forget([
-            'mybank_access_token',
-            'mybank_refresh_token',
-            'mybank_token_expires_at',
-            'mybank_user',
-        ]);
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

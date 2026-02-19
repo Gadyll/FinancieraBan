@@ -11,6 +11,7 @@ from app.core.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+
 # =========================
 # PASSWORD HASHING
 # =========================
@@ -22,10 +23,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
+
 # =========================
 # TOKEN CREATION
 # =========================
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Crea ACCESS token con:
+    - exp, iat, type=access
+    - el caller debe mandar {"sub": "...", "role": "..."} etc.
+    """
     to_encode = data.copy()
 
     expire = datetime.now(timezone.utc) + (
@@ -44,6 +51,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 def create_refresh_token(data: dict) -> str:
+    """
+    Crea REFRESH token con:
+    - exp, iat, type=refresh
+    - el caller debe mandar {"sub": "..."} etc.
+    """
     to_encode = data.copy()
 
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
@@ -65,13 +77,12 @@ def create_refresh_token(data: dict) -> str:
 def decode_token(token: str) -> Dict[str, Any]:
     """
     Decodifica token sin validar si es access/refresh.
-    Útil si en el futuro necesitas lógica genérica.
     """
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         return payload
     except JWTError as e:
-        raise ValueError(f"Token inválido: {str(e)}")
+        raise ValueError(f"Token inválido: {str(e)}") from e
 
 
 def verify_token_type(payload: dict, expected_type: str) -> bool:

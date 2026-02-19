@@ -8,6 +8,7 @@ from app.core.dependencies import get_current_user, require_admin
 from app.core.security import decode_refresh_token, get_subject
 from app.models.user import User
 
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
