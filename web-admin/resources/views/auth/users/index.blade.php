@@ -190,7 +190,7 @@ tr:hover .badge{
   /* Modal */
   .modalx-backdrop {
     position: fixed; inset:0;
-    background: rgba(10, 138, 29, 0.55);
+    background: rgba(119, 6, 6, 0.55);
     display:none;
     align-items:center;
     justify-content:center;
