@@ -22,11 +22,10 @@ class UsersController extends Controller
         if (!$res['ok']) {
             $error = "No se pudieron cargar usuarios: ({$res['status']}) " . json_encode($res['data']);
         } else {
-            // Tu API devuelve lista directa (list[UserOut])
             $users = is_array($res['data']) ? $res['data'] : ($res['data']['data'] ?? []);
         }
 
-        // ✅ CONSERVAMOS tu ruta existente auth/users/index.blade.php
+        // 🔥 IMPORTANTE: tu vista está en auth/users
         return view('auth.users.index', [
             'users' => $users,
             'error' => $error,
@@ -41,15 +40,21 @@ class UsersController extends Controller
             return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
         }
 
+        // ✅ Validación estricta contraseña
         $validated = $request->validate([
             'username' => ['required', 'string', 'min:3', 'max:50'],
-            'email'    => ['required', 'email', 'max:120'],
-            'password' => ['required', 'string', 'min:8', 'max:128'],
+            'email'    => ['required', 'email'],
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'max:128',
+                'regex:/[A-Z]/',           // mayúscula
+                'regex:/[0-9]/',           // número
+                'regex:/[^A-Za-z0-9]/',    // especial
+            ],
         ], [
-            'username.required' => 'El username es obligatorio.',
-            'email.required'    => 'El correo es obligatorio.',
-            'password.required' => 'La contraseña es obligatoria.',
-            'password.min'      => 'La contraseña debe tener mínimo 8 caracteres.',
+            'password.regex' => 'La contraseña debe incluir mayúscula, número y caracter especial.',
         ]);
 
         $payload = [
@@ -70,7 +75,6 @@ class UsersController extends Controller
                 ->withInput();
         }
 
-        // ✅ Limpia el form después de crear
         return redirect()
             ->route('users.index')
             ->with('ok', 'Cobrador creado correctamente.')
@@ -84,12 +88,12 @@ class UsersController extends Controller
             return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
         }
 
-        $res = $api->toggleUserActive($accessToken, (int) $userId);
+        $res = $api->toggleUserActive($accessToken, (int)$userId);
 
         if (!$res['ok']) {
             return redirect()
                 ->route('users.index')
-                ->withErrors(['users' => "No se pudo cambiar estado: ({$res['status']}) " . json_encode($res['data'])]);
+                ->withErrors(['users' => "No se pudo cambiar estado: ({$res['status']})"]);
         }
 
         return redirect()->route('users.index')->with('ok', 'Estado actualizado.');
@@ -102,21 +106,21 @@ class UsersController extends Controller
             return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
         }
 
-        $res = $api->deleteUser($accessToken, (int) $userId);
+        $res = $api->deleteUser($accessToken, (int)$userId);
 
         if (!$res['ok']) {
-            // ✅ 409 = bloqueado por historial
-            if ((int) $res['status'] === 409) {
-                $detail = $res['data']['detail'] ?? 'No se puede eliminar: tiene historial. Solo desactivar.';
-                return redirect()->route('users.index')->withErrors(['users' => $detail]);
+            if ((int)$res['status'] === 409) {
+                return redirect()
+                    ->route('users.index')
+                    ->withErrors(['users' => $res['data']['detail'] ?? 'Tiene historial, solo se puede desactivar.']);
             }
 
             return redirect()
                 ->route('users.index')
-                ->withErrors(['users' => "No se pudo eliminar: ({$res['status']}) " . json_encode($res['data'])]);
+                ->withErrors(['users' => "No se pudo eliminar."]);
         }
 
-        return redirect()->route('users.index')->with('ok', 'Cobrador eliminado definitivamente.');
+        return redirect()->route('users.index')->with('ok', 'Cobrador eliminado.');
     }
 }
 
