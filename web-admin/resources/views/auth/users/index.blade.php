@@ -130,23 +130,67 @@
   }
   tr:hover td { background: rgba(26,111,207,.03); }
 
-  .badge {
-    display:inline-flex;
-    align-items:center;
-    padding:.25rem .6rem;
-    border-radius:999px;
-    font-weight:900;
-    font-size:.82rem;
-    border:1px solid transparent;
-  }
-  .b-admin { background: rgba(26,111,207,.10); color:#1a6fcf; border-color: rgba(26,111,207,.18); }
-  .b-user  { background: rgba(18,169,138,.10); color:#0a7a63; border-color: rgba(18,169,138,.18); }
-  .b-off   { background: rgba(224,58,58,.08); color:#b02020; border-color: rgba(224,58,58,.18); }
+  /* Badges PRO (solo corregimos legibilidad del texto) */
+/* Badges PRO (solo corregimos legibilidad del texto) */
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+
+  /* ✅ antes tenías un background rojo fijo (#7c0c0c) que ensucia todo */
+  background: #f8fafc;                 /* base neutra (no transparente) */
+  border: 1.5px solid rgba(15,23,42,.14);
+
+  font-weight: 1000;
+  font-size: 13px;
+  letter-spacing: .02em;
+
+  /* ✅ texto SIEMPRE legible */
+  color: #0f172a;
+
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ROLES */
+.b-admin{
+  background: #0565e1;                 /* azul suave sólido */
+  color:#1D4ED8;                       /* azul fuerte */
+  border-color: #1a89a4;
+}
+
+.b-user{
+  background: #110357;                 /* verde suave sólido */
+  color:#047857;                       /* verde fuerte */
+  border-color: #010380;
+}
+
+/* ESTADOS */
+.b-active{
+  background: #005105;                 /* verde suave sólido */
+  color:#065F46;                       /* verde oscuro */
+  border-color: #159606;
+}
+
+.b-inactive{
+  background: #de0b0b;                 /* rojo suave sólido */
+  color:#B91C1C;                       /* rojo fuerte */
+  border-color: #ab0808;
+}
+
+/* (Opcional) mejora contraste dentro de fila hover */
+tr:hover .badge{
+  filter: brightness(0.98);
+}
+
+
 
   /* Modal */
   .modalx-backdrop {
     position: fixed; inset:0;
-    background: rgba(13,27,46,.55);
+    background: rgba(10, 138, 29, 0.55);
     display:none;
     align-items:center;
     justify-content:center;
@@ -170,6 +214,24 @@
   .kv { display:grid; grid-template-columns: 120px 1fr; gap:.35rem .75rem; margin-top:.75rem; font-size:.92rem; }
   .kv div:nth-child(odd) { color:#6b7e96; font-weight:800; }
   .muted { color:#6b7e96; }
+
+  /* ===== FIX: QUITAR 2do OJO AUTOMATICO DEL NAVEGADOR (EDGE/CHROME) ===== */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear{
+  display:none;
+  width:0;
+  height:0;
+}
+
+/* Chrome/Edge (autofill/cred button) */
+input[type="password"]::-webkit-credentials-auto-fill-button{
+  visibility:hidden;
+  display:none !important;
+  pointer-events:none;
+  position:absolute;
+  right:0;
+}
+
 </style>
 @endpush
 
@@ -274,7 +336,7 @@
             Limpiar
           </button>
 
-          <span class="muted" style="align-self:center;">Rol fijo: <strong>USER</strong></span>
+          <span class="muted" style="align-self:center;"> <strong></strong></span>
         </div>
       </form>
     </div>
@@ -314,17 +376,18 @@
                 <td>{{ $u['email'] ?? '-' }}</td>
                 <td>
                   @if($isAdmin)
-                    <span class="badge b-admin">ADMIN</span>
-                  @else
-                    <span class="badge b-user">USER</span>
-                  @endif
+  <span class="badge b-admin">ADMIN</span>
+@else
+  <span class="badge b-user">USER</span>
+@endif
+                  
                 </td>
                 <td>
                   @if($isActive)
-                    <span class="badge b-user">ACTIVO</span>
-                  @else
-                    <span class="badge b-off">INACTIVO</span>
-                  @endif
+  <span class="badge b-active">ACTIVO</span>
+@else
+  <span class="badge b-inactive">INACTIVO</span>
+@endif
                 </td>
                 <td>
                   @if($isAdmin)
