@@ -1,84 +1,84 @@
-from typing import List
+from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.database.session import get_db
-
-from app.models.user import User
-from app.models.loan import Loan
-from app.models.payment import Payment
-from app.models.ticket import Ticket
-
-from app.schemas.user import UserCreate, UserResponse
-
 from app.core.dependencies import require_admin
-
-from app.core.dependencies import get_current_user, require_admin
-
 from app.core.security import hash_password
-
+from app.models.user import User, UserRole
+from app.models.payment import Payment
+from app.schemas.user import UserCreate, UserOut
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-# ============================================================
-# POST /api/v1/users  (Create User)
-# ============================================================
+# =========================
+# GET /users
+# =========================
+@router.get("", response_model=list[UserOut])
+def list_users(
+    skip: int = 0,
+    limit: int = 200,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return db.query(User).order_by(User.id.asc()).offset(skip).limit(limit).all()
 
-@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+
+# =========================
+# POST /users  (Create USER cobrador)
+# =========================
+@router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(
     payload: UserCreate,
+    _: User = Depends(require_admin),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
 ):
-    # Solo permite crear USER
+    # ✅ Solo crear cobradores USER (ADMIN no se crea desde aquí)
     if payload.role != "USER":
-        raise HTTPException(status_code=400, detail="Solo se pueden crear usuarios con rol USER.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Solo se permite crear cobradores con rol USER.",
+        )
 
-    # username único
-    if db.query(User).filter(User.username == payload.username).first():
-        raise HTTPException(status_code=400, detail="El username ya existe.")
+    # ✅ Username/email únicos
+    exists = db.query(User).filter(
+        or_(
+            User.username == payload.username.strip(),
+            User.email == str(payload.email).strip(),
+        )
+    ).first()
 
-    # email único
-    if payload.email and db.query(User).filter(User.email == payload.email).first():
-        raise HTTPException(status_code=400, detail="El email ya está registrado.")
+    if exists:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username o email ya existe.",
+        )
 
-    new_user = User(
-        username=payload.username,
-        email=payload.email,
-        hashed_password = hash_password(payload.password),
-        role="USER",
+    user = User(
+        username=payload.username.strip(),
+        email=str(payload.email).strip(),
+        password_hash=hash_password(payload.password),
+        role=UserRole.USER,
         is_active=True,
     )
 
-    db.add(new_user)
+    db.add(user)
     db.commit()
-    db.refresh(new_user)
-    return new_user
+    db.refresh(user)
+    return user
 
 
-# ============================================================
-# GET /api/v1/users  (List Users)
-# ============================================================
-
-@router.get("", response_model=List[UserResponse])
-def list_users(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
-):
-    return db.query(User).order_by(User.id.desc()).all()
-
-
-# ============================================================
-# GET /api/v1/users/{user_id}  (Get User)
-# ============================================================
-
-@router.get("/{user_id}", response_model=UserResponse)
+# =========================
+# GET /users/{user_id}
+# =========================
+@router.get("/{user_id}", response_model=UserOut)
 def get_user(
     user_id: int,
+    _: User = Depends(require_admin),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -86,22 +86,22 @@ def get_user(
     return user
 
 
-# ============================================================
-# PATCH /api/v1/users/{user_id}/toggle-active  (Toggle)
-# ============================================================
-
-@router.patch("/{user_id}/toggle-active", response_model=UserResponse)
+# =========================
+# PATCH /users/{user_id}/toggle-active
+# =========================
+@router.patch("/{user_id}/toggle-active", response_model=UserOut)
 def toggle_user_active(
     user_id: int,
+    _: User = Depends(require_admin),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    if user.role == "ADMIN":
-        raise HTTPException(status_code=400, detail="ADMIN no se puede desactivar.")
+    # ✅ ADMIN no se toca
+    if user.role == UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="No puedes modificar un ADMIN.")
 
     user.is_active = not bool(user.is_active)
     db.commit()
@@ -109,39 +109,36 @@ def toggle_user_active(
     return user
 
 
-# ============================================================
-# DELETE /api/v1/users/{user_id}  (Delete User)
-#   - HARD DELETE si NO tiene historial
-#   - Si tiene historial -> bloquear y pedir desactivar
-# ============================================================
-
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+# =========================
+# DELETE /users/{user_id}
+# Hard delete “nivel banco”:
+# - Si tiene historial (payments.user_id), NO se borra (409) -> solo desactivar
+# =========================
+@router.delete("/{user_id}")
 def delete_user(
     user_id: int,
+    _: User = Depends(require_admin),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    if user.role == "ADMIN":
-        raise HTTPException(status_code=400, detail="ADMIN no se puede eliminar.")
+    # ✅ ADMIN jamás se elimina
+    if user.role == UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="No puedes eliminar un ADMIN.")
 
-    if user.id == current_user.id:
-        raise HTTPException(status_code=400, detail="No puedes eliminar tu propio usuario.")
+    # ✅ Historial real: pagos cobrados por este USER
+    payments_count = db.query(Payment).filter(Payment.user_id == user_id).count()
 
-    # Historial (lo profesional):
-    has_loan = db.query(Loan).filter(Loan.user_id == user_id).first()
-    has_payment = db.query(Payment).filter(Payment.user_id == user_id).first()
-    has_ticket = db.query(Ticket).filter(Ticket.user_id == user_id).first()
-
-    if has_loan or has_payment or has_ticket:
+    if payments_count > 0:
+        # Nivel banco: no borras si hay historial -> solo desactivar
         raise HTTPException(
-            status_code=400,
-            detail="No se puede eliminar: el cobrador tiene historial. Usa desactivar.",
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"No se puede eliminar: este cobrador tiene historial de pagos ({payments_count}). Solo puedes desactivar.",
         )
 
+    # ✅ Hard delete definitivo
     db.delete(user)
     db.commit()
-    return
+    return {"ok": True, "message": "Usuario eliminado definitivamente."}

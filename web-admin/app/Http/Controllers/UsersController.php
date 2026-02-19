@@ -16,17 +16,21 @@ class UsersController extends Controller
 
         $error = null;
         $users = [];
+
         $res = $api->users($accessToken);
 
         if (!$res['ok']) {
             $error = "No se pudieron cargar usuarios: ({$res['status']}) " . json_encode($res['data']);
         } else {
+            // Tu API devuelve lista directa (list[UserOut])
             $users = is_array($res['data']) ? $res['data'] : ($res['data']['data'] ?? []);
         }
 
+        // ✅ CONSERVAMOS tu ruta existente auth/users/index.blade.php
         return view('auth.users.index', [
             'users' => $users,
             'error' => $error,
+            'clearUserForm' => (bool) session('clear_user_form', false),
         ]);
     }
 
@@ -39,15 +43,15 @@ class UsersController extends Controller
 
         $validated = $request->validate([
             'username' => ['required', 'string', 'min:3', 'max:50'],
-            'email'    => ['required', 'email'],
+            'email'    => ['required', 'email', 'max:120'],
             'password' => ['required', 'string', 'min:8', 'max:128'],
         ], [
             'username.required' => 'El username es obligatorio.',
             'email.required'    => 'El correo es obligatorio.',
             'password.required' => 'La contraseña es obligatoria.',
+            'password.min'      => 'La contraseña debe tener mínimo 8 caracteres.',
         ]);
 
-        // Payload como ARRAY (no string)
         $payload = [
             'username' => $validated['username'],
             'email'    => $validated['email'],
@@ -58,7 +62,6 @@ class UsersController extends Controller
         $res = $api->createUser($accessToken, $payload);
 
         if (!$res['ok']) {
-            // Mensajes más claros
             $msg = $res['data']['detail'] ?? $res['data']['message'] ?? json_encode($res['data']);
 
             return redirect()
@@ -67,7 +70,7 @@ class UsersController extends Controller
                 ->withInput();
         }
 
-        // ✅ Limpia el form (no dejamos old inputs)
+        // ✅ Limpia el form después de crear
         return redirect()
             ->route('users.index')
             ->with('ok', 'Cobrador creado correctamente.')
@@ -81,7 +84,7 @@ class UsersController extends Controller
             return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
         }
 
-        $res = $api->toggleUserActive($accessToken, (int)$userId);
+        $res = $api->toggleUserActive($accessToken, (int) $userId);
 
         if (!$res['ok']) {
             return redirect()
@@ -99,14 +102,13 @@ class UsersController extends Controller
             return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
         }
 
-        $res = $api->deleteUser($accessToken, (int)$userId);
+        $res = $api->deleteUser($accessToken, (int) $userId);
 
         if (!$res['ok']) {
-            // Si backend manda 409 por historial
-            if ((int)$res['status'] === 409) {
-                return redirect()
-                    ->route('users.index')
-                    ->withErrors(['users' => $res['data']['detail'] ?? 'No se puede eliminar: tiene historial. Solo desactivar.']);
+            // ✅ 409 = bloqueado por historial
+            if ((int) $res['status'] === 409) {
+                $detail = $res['data']['detail'] ?? 'No se puede eliminar: tiene historial. Solo desactivar.';
+                return redirect()->route('users.index')->withErrors(['users' => $detail]);
             }
 
             return redirect()
@@ -117,6 +119,8 @@ class UsersController extends Controller
         return redirect()->route('users.index')->with('ok', 'Cobrador eliminado definitivamente.');
     }
 }
+
+
 
 
 

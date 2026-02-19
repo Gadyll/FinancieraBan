@@ -23,7 +23,7 @@ Route::middleware(['mybank.auth', 'mybank.admin'])->group(function () {
     // Users (Cobradores)
     Route::get('/users', [UsersController::class, 'index'])->name('users.index');
     Route::post('/users', [UsersController::class, 'store'])->name('users.store');
-    Route::patch('/users/{userId}/toggle-active', [UsersController::class, 'toggleActive'])->name('users.toggle');
+    Route::patch('/users/{userId}/toggle', [UsersController::class, 'toggleActive'])->name('users.toggle');
     Route::delete('/users/{userId}', [UsersController::class, 'destroy'])->name('users.destroy');
 
     // Clients

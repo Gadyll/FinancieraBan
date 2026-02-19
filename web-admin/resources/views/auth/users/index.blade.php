@@ -2,301 +2,538 @@
 
 @section('title', 'Usuarios (Cobradores) - MYBANK')
 
+@push('styles')
+<style>
+  .cardx {
+    background: #fff;
+    border: 1px solid rgba(26,111,207,.14);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(13,27,46,.08);
+    overflow: hidden;
+  }
+  .cardx-head {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(26,111,207,.10);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .cardx-title { margin: 0; font-weight: 900; letter-spacing: -.02em; }
+  .cardx-sub { margin: .25rem 0 0 0; color: #6b7e96; font-weight: 500; }
+  .cardx-body { padding: 1.25rem; }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .field-label { display:block; font-weight:800; font-size:.88rem; color:#3a4d65; margin-bottom:.45rem;}
+  .field-input {
+    width: 100%;
+    padding: .75rem 1rem;
+    border: 1.5px solid rgba(26,111,207,.16);
+    border-radius: 12px;
+    background: #f8faff;
+    outline: none;
+    transition: .15s;
+    font-family: 'Outfit', sans-serif;
+  }
+  .field-input:focus {
+    background:#fff;
+    border-color: rgba(26,111,207,.45);
+    box-shadow: 0 0 0 3px rgba(26,111,207,.12);
+  }
+
+  .pass-wrap { position: relative; }
+  .pass-eye {
+    position:absolute;
+    right:.65rem;
+    top:50%;
+    transform: translateY(-50%);
+    border:0;
+    background:transparent;
+    padding:.35rem;
+    border-radius:10px;
+    cursor:pointer;
+    color:#6b7e96;
+  }
+  .pass-eye:hover { color:#1a6fcf; }
+
+  .pass-rules {
+    margin-top:.65rem;
+    border: 1px dashed rgba(26,111,207,.18);
+    background: rgba(26,111,207,.04);
+    border-radius: 12px;
+    padding: .75rem .9rem;
+    display:flex;
+    flex-direction:column;
+    gap:.35rem;
+    font-size: .88rem;
+    color:#3a4d65;
+  }
+  .rule { display:flex; align-items:center; gap:.5rem; }
+  .dot {
+    width:10px; height:10px; border-radius:999px;
+    background: rgba(224,58,58,.70);
+    box-shadow: 0 0 0 4px rgba(224,58,58,.10);
+    flex-shrink:0;
+  }
+  .rule.ok .dot {
+    background: rgba(18,169,138,.95);
+    box-shadow: 0 0 0 4px rgba(18,169,138,.12);
+  }
+
+  .btnx {
+    border: 0;
+    border-radius: 12px;
+    padding: .75rem 1rem;
+    font-weight: 900;
+    font-family: 'Outfit', sans-serif;
+    cursor:pointer;
+    transition:.15s;
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    white-space:nowrap;
+  }
+  .btnx-primary {
+    color:#fff;
+    background: linear-gradient(135deg, #1a6fcf 0%, #1259b0 100%);
+    box-shadow: 0 4px 18px rgba(26,111,207,.25);
+  }
+  .btnx-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+  .btnx-soft {
+    background: rgba(26,111,207,.08);
+    border: 1px solid rgba(26,111,207,.18);
+    color:#1a6fcf;
+  }
+  .btnx-danger {
+    background: rgba(224,58,58,.10);
+    border: 1px solid rgba(224,58,58,.22);
+    color:#b02020;
+  }
+
+  .table-wrap { border-radius: 16px; overflow:auto; border: 1px solid rgba(26,111,207,.14); }
+  table { width:100%; border-collapse: collapse; min-width: 860px; }
+  th, td { padding: .85rem .9rem; border-bottom: 1px solid rgba(26,111,207,.10); vertical-align: middle; }
+  th {
+    font-size: .78rem;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    color:#6b7e96;
+    background: rgba(26,111,207,.04);
+    font-weight: 900;
+  }
+  tr:hover td { background: rgba(26,111,207,.03); }
+
+  .badge {
+    display:inline-flex;
+    align-items:center;
+    padding:.25rem .6rem;
+    border-radius:999px;
+    font-weight:900;
+    font-size:.82rem;
+    border:1px solid transparent;
+  }
+  .b-admin { background: rgba(26,111,207,.10); color:#1a6fcf; border-color: rgba(26,111,207,.18); }
+  .b-user  { background: rgba(18,169,138,.10); color:#0a7a63; border-color: rgba(18,169,138,.18); }
+  .b-off   { background: rgba(224,58,58,.08); color:#b02020; border-color: rgba(224,58,58,.18); }
+
+  /* Modal */
+  .modalx-backdrop {
+    position: fixed; inset:0;
+    background: rgba(13,27,46,.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding: 1rem;
+    z-index: 9999;
+  }
+  .modalx {
+    width: min(560px, 100%);
+    background:#fff;
+    border-radius: 18px;
+    box-shadow: 0 24px 64px rgba(0,0,0,.25);
+    overflow:hidden;
+    border:1px solid rgba(26,111,207,.14);
+    animation: pop .18s ease-out both;
+  }
+  @keyframes pop { from { transform: translateY(10px) scale(.98); opacity:.6 } to { transform: translateY(0) scale(1); opacity:1 } }
+  .modalx-head { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(26,111,207,.10); }
+  .modalx-title { margin:0; font-weight: 1000; }
+  .modalx-body { padding: 1rem 1.25rem; color:#3a4d65; }
+  .modalx-foot { padding: 1rem 1.25rem; border-top: 1px solid rgba(26,111,207,.10); display:flex; gap:.6rem; justify-content:flex-end; flex-wrap:wrap; }
+  .kv { display:grid; grid-template-columns: 120px 1fr; gap:.35rem .75rem; margin-top:.75rem; font-size:.92rem; }
+  .kv div:nth-child(odd) { color:#6b7e96; font-weight:800; }
+  .muted { color:#6b7e96; }
+</style>
+@endpush
+
 @section('content')
-<div class="page">
-  <div class="container">
+<div class="container page">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Usuarios (Cobradores)</h1>
+      <p class="page-sub">Crea y administra cobradores que usarán la app móvil (username/email/contraseña).</p>
+    </div>
+  </div>
 
-    <div class="page-head">
+  @if(session('ok'))
+    <div class="alert alert-success surface surface-pad" style="border-radius:16px;">
+      <strong>{{ session('ok') }}</strong>
+    </div>
+  @endif
+
+  @if($error)
+    <div class="alert alert-danger surface surface-pad" style="border-radius:16px;">
+      <strong>{{ $error }}</strong>
+    </div>
+  @endif
+
+  @if($errors->has('users'))
+    <div class="alert alert-danger surface surface-pad" style="border-radius:16px;">
+      <strong>{{ $errors->first('users') }}</strong>
+    </div>
+  @endif
+
+  <div class="cardx" style="margin-bottom:1.25rem;">
+    <div class="cardx-head">
       <div>
-        <h1 class="page-title">Usuarios (Cobradores)</h1>
-        <p class="page-sub">Crea y administra cobradores que usarán la app móvil.</p>
+        <h3 class="cardx-title">Crear cobrador (USER)</h3>
+        <p class="cardx-sub">Estos datos serán los mismos para iniciar sesión en la app móvil.</p>
       </div>
     </div>
 
-    @if(session('ok'))
-      <div class="alert alert-success">{{ session('ok') }}</div>
-    @endif
+    <div class="cardx-body">
+      <form method="POST" action="{{ route('users.store') }}" id="createUserForm" autocomplete="off">
+        @csrf
 
-    @if($errors->has('users'))
-      <div class="alert alert-danger">{{ $errors->first('users') }}</div>
-    @endif
-
-    @if(!empty($error))
-      <div class="alert alert-danger">{{ $error }}</div>
-    @endif
-
-    <div class="surface">
-      <div class="accent-bar"></div>
-      <div class="surface-pad">
-
-        {{-- FORM CREATE --}}
-        <div class="row g-3 align-items-start">
-          <div class="col-lg-4">
-            <h5 class="mb-1" style="font-weight:900;">Crear cobrador</h5>
-            <div class="help">Credenciales usadas también en la app móvil.</div>
+        <div class="grid2">
+          <div>
+            <label class="field-label" for="username">Username</label>
+            <input class="field-input" id="username" name="username" type="text"
+                   value="{{ old('username') }}" placeholder="cobrador01" required>
+            @error('username')
+              <div style="color:#b02020; font-weight:700; margin-top:.35rem;">{{ $message }}</div>
+            @enderror
           </div>
 
-          <div class="col-lg-8">
-            <form id="userCreateForm" method="POST" action="{{ route('users.store') }}" class="row g-3">
-              @csrf
-
-              <div class="col-md-6">
-                <label class="form-label">Username *</label>
-                <input id="u_username" name="username" class="form-control" value="{{ old('username') }}" placeholder="cobrador01" required>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label">Email *</label>
-                <input id="u_email" name="email" type="email" class="form-control" value="{{ old('email') }}" placeholder="cobrador@empresa.com" required>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label">Contraseña *</label>
-
-                <div style="position:relative;">
-                  <input
-                    id="u_password"
-                    name="password"
-                    type="password"
-                    class="form-control"
-                    placeholder="Mínimo 8 caracteres"
-                    required
-                    style="padding-right:3rem;"
-                    autocomplete="new-password"
-                  >
-
-                  {{-- UN SOLO OJO --}}
-                  <button
-                    type="button"
-                    id="toggleUserPass"
-                    class="btn btn-outline-light"
-                    style="position:absolute; right:.5rem; top:50%; transform:translateY(-50%); padding:.35rem .55rem;"
-                    aria-label="Mostrar contraseña"
-                  >
-                    👁️
-                  </button>
-                </div>
-
-                {{-- Password rules (live) --}}
-                <div class="mt-2" style="display:grid; gap:.35rem;">
-                  <div class="help" id="rule_len">• 8 caracteres mínimo</div>
-                  <div class="help" id="rule_upper">• 1 mayúscula</div>
-                  <div class="help" id="rule_lower">• 1 minúscula</div>
-                  <div class="help" id="rule_num">• 1 número</div>
-                  <div class="help" id="rule_special">• 1 caracter especial (!@#$...)</div>
-                </div>
-              </div>
-
-              <div class="col-md-6 d-flex align-items-end">
-                <button class="btn btn-primary w-100" type="submit">
-                  Crear cobrador
-                </button>
-              </div>
-            </form>
+          <div>
+            <label class="field-label" for="email">Correo</label>
+            <input class="field-input" id="email" name="email" type="email"
+                   value="{{ old('email') }}" placeholder="cobrador@dominio.com" required>
+            @error('email')
+              <div style="color:#b02020; font-weight:700; margin-top:.35rem;">{{ $message }}</div>
+            @enderror
           </div>
         </div>
 
-        <hr class="hr-soft">
+        <div style="margin-top:1rem;">
+          <label class="field-label" for="password">Contraseña</label>
 
-        {{-- TABLE --}}
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-          <h5 class="m-0" style="font-weight:900;">Lista de usuarios</h5>
-          <div class="help">ADMIN no se toca. USER se activa/desactiva o se elimina (si no tiene historial).</div>
+          <div class="pass-wrap">
+            <input class="field-input" id="password" name="password" type="password"
+                   value="{{ old('password') }}" placeholder="Mínimo 8, mayúscula, número, especial" required
+                   autocomplete="new-password" style="padding-right:3rem;">
+            <button type="button" class="pass-eye" id="togglePass" aria-label="Mostrar contraseña">
+              <svg id="eyeIcon" width="18" height="18" fill="none" viewBox="0 0 24 24"
+                   stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="pass-rules" id="passRules">
+            <div class="rule" data-rule="len"><span class="dot"></span> Mínimo 8 caracteres</div>
+            <div class="rule" data-rule="upper"><span class="dot"></span> Al menos 1 mayúscula</div>
+            <div class="rule" data-rule="num"><span class="dot"></span> Al menos 1 número</div>
+            <div class="rule" data-rule="spec"><span class="dot"></span> Al menos 1 caracter especial (!@#$...)</div>
+          </div>
+
+          @error('password')
+            <div style="color:#b02020; font-weight:700; margin-top:.35rem;">{{ $message }}</div>
+          @enderror
         </div>
 
-        <div class="table-wrap">
-          <div class="table-responsive">
-            <table class="table table-clean table-striped align-middle mb-0" style="min-width:980px;">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Username</th>
-                  <th>Email</th>
-                  <th>Rol</th>
-                  <th>Estado</th>
-                  <th class="right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-              @forelse($users as $u)
-                @php
-                  $isAdmin  = (($u['role'] ?? '') === 'ADMIN');
-                  $isActive = (bool)($u['is_active'] ?? false);
-                  $uid      = $u['id'] ?? null;
-                @endphp
+        <div style="margin-top:1rem; display:flex; gap:.75rem; flex-wrap:wrap;">
+          <button class="btnx btnx-primary" type="submit">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24"
+                 stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/>
+            </svg>
+            Crear cobrador
+          </button>
 
-                <tr>
-                  <td class="mono">{{ $uid }}</td>
-                  <td>{{ $u['username'] ?? '—' }}</td>
-                  <td>{{ $u['email'] ?? '—' }}</td>
-                  <td>
-                    <span class="badge-soft {{ $isAdmin ? 'ok' : '' }}">
-                      {{ $u['role'] ?? '—' }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge-soft {{ $isActive ? 'ok' : 'off' }}">
-                      {{ $isActive ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </td>
+          <button class="btnx btnx-soft" type="button" id="clearFormBtn">
+            Limpiar
+          </button>
 
-                  <td class="right">
-                    @if(!$uid)
-                      <span class="muted">Sin ID</span>
-                    @elseif($isAdmin)
-                      <span class="help">Protegido</span>
-                    @else
-                      {{-- Toggle --}}
-                      <form class="inline" method="POST" action="{{ route('users.toggle', ['userId' => $uid]) }}">
-                        @csrf
-                        @method('PATCH')
-                        <button class="btn btn-outline-light btn-sm" type="submit">
-                          {{ $isActive ? 'Desactivar' : 'Activar' }}
-                        </button>
-                      </form>
+          <span class="muted" style="align-self:center;">Rol fijo: <strong>USER</strong></span>
+        </div>
+      </form>
+    </div>
+  </div>
 
-                      {{-- Delete (modal) --}}
-                      <button
-                        type="button"
-                        class="btn btn-outline-danger btn-sm"
-                        data-bs-toggle="modal"
-                        data-bs-target="#deleteUserModal"
-                        data-user-id="{{ $uid }}"
-                        data-username="{{ $u['username'] ?? '' }}"
-                        data-email="{{ $u['email'] ?? '' }}"
-                      >
-                        Eliminar
+  <div class="cardx">
+    <div class="cardx-head">
+      <div>
+        <h3 class="cardx-title">Lista de usuarios</h3>
+        <p class="cardx-sub">ADMIN no se modifica. USER se puede desactivar o eliminar (si no tiene historial).</p>
+      </div>
+    </div>
+
+    <div class="cardx-body">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:90px;">ID</th>
+              <th>Username</th>
+              <th>Correo</th>
+              <th style="width:130px;">Rol</th>
+              <th style="width:140px;">Estado</th>
+              <th style="width:280px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @forelse($users as $u)
+              @php
+                $role = $u['role'] ?? '';
+                $isActive = (bool)($u['is_active'] ?? false);
+                $isAdmin = ($role === 'ADMIN');
+              @endphp
+              <tr>
+                <td>#{{ $u['id'] ?? '-' }}</td>
+                <td><strong>{{ $u['username'] ?? '-' }}</strong></td>
+                <td>{{ $u['email'] ?? '-' }}</td>
+                <td>
+                  @if($isAdmin)
+                    <span class="badge b-admin">ADMIN</span>
+                  @else
+                    <span class="badge b-user">USER</span>
+                  @endif
+                </td>
+                <td>
+                  @if($isActive)
+                    <span class="badge b-user">ACTIVO</span>
+                  @else
+                    <span class="badge b-off">INACTIVO</span>
+                  @endif
+                </td>
+                <td>
+                  @if($isAdmin)
+                    <span class="muted">Protegido</span>
+                  @else
+                    <form method="POST" action="{{ route('users.toggle', $u['id']) }}" style="display:inline;">
+                      @csrf
+                      @method('PATCH')
+                      <button class="btnx btnx-soft" type="submit">
+                        {{ $isActive ? 'Desactivar' : 'Activar' }}
                       </button>
-                    @endif
-                  </td>
-                </tr>
-              @empty
-                <tr>
-                  <td colspan="6" class="text-center p-4">
-                    <div class="help">No hay usuarios para mostrar.</div>
-                  </td>
-                </tr>
-              @endforelse
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    </form>
 
-      </div>
-    </div>
+                    <button
+                      class="btnx btnx-danger"
+                      type="button"
+                      data-open-delete="1"
+                      data-user-id="{{ $u['id'] }}"
+                      data-username="{{ $u['username'] ?? '' }}"
+                      data-email="{{ $u['email'] ?? '' }}"
+                      data-role="{{ $role }}"
+                      data-active="{{ $isActive ? '1' : '0' }}"
+                    >
+                      Eliminar
+                    </button>
 
-  </div>
-</div>
-
-{{-- MODAL CONFIRM DELETE --}}
-<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:16px; overflow:hidden;">
-      <div class="accent-bar"></div>
-      <div class="modal-header">
-        <h5 class="modal-title" style="font-weight:900;">Confirmación de eliminación</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-
-      <div class="modal-body">
-        <div class="help mb-2">Vas a eliminar este cobrador:</div>
-
-        <div class="surface" style="box-shadow:none;">
-          <div class="surface-pad">
-            <div class="d-flex flex-column gap-1">
-              <div><span class="help">ID:</span> <span class="mono" id="m_uid">—</span></div>
-              <div><span class="help">Username:</span> <span id="m_user">—</span></div>
-              <div><span class="help">Email:</span> <span id="m_email">—</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="alert alert-danger mt-3 mb-0">
-          Si el cobrador tiene historial (préstamos/pagos), el sistema bloqueará la eliminación y te pedirá desactivarlo.
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-outline-light" type="button" data-bs-dismiss="modal">Cancelar</button>
-
-        <form id="deleteUserForm" method="POST" action="">
-          @csrf
-          @method('DELETE')
-          <button class="btn btn-outline-danger" type="submit">Eliminar definitivamente</button>
-        </form>
+                    {{-- Form DELETE real (lo dispara el modal) --}}
+                    <form method="POST" action="{{ route('users.destroy', $u['id']) }}"
+                          id="deleteForm-{{ $u['id'] }}" style="display:none;">
+                      @csrf
+                      @method('DELETE')
+                    </form>
+                  @endif
+                </td>
+              </tr>
+            @empty
+              <tr>
+                <td colspan="6" class="muted">No hay usuarios.</td>
+              </tr>
+            @endforelse
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 </div>
 
-{{-- SCRIPTS --}}
+{{-- Modal elegante con detalles --}}
+<div class="modalx-backdrop" id="deleteModal">
+  <div class="modalx" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+    <div class="modalx-head">
+      <h3 class="modalx-title" id="deleteTitle">Confirmación con detalles adicionales</h3>
+      <div class="muted" id="deleteHint" style="margin-top:.25rem;">
+        Revisa la información. Si el cobrador tiene historial de pagos, el sistema bloqueará el borrado.
+      </div>
+    </div>
+
+    <div class="modalx-body">
+      <div>Vas a intentar eliminar definitivamente este cobrador:</div>
+
+      <div class="kv" style="margin-top:.9rem;">
+        <div>ID</div><div id="mId">-</div>
+        <div>Username</div><div id="mUser">-</div>
+        <div>Email</div><div id="mEmail">-</div>
+        <div>Rol</div><div id="mRole">-</div>
+        <div>Estado</div><div id="mActive">-</div>
+      </div>
+
+      <div style="margin-top:1rem; padding:.75rem .9rem; border-radius:12px; border:1px solid rgba(240,120,32,.22); background: rgba(240,120,32,.06); color:#7a4a12;">
+        <strong>Regla banco:</strong> si tiene pagos ligados, no se borra. Solo se desactiva.
+      </div>
+    </div>
+
+    <div class="modalx-foot">
+      <button class="btnx btnx-soft" type="button" id="cancelDelete">Cancelar</button>
+      <button class="btnx btnx-danger" type="button" id="confirmDelete">Eliminar definitivamente</button>
+    </div>
+  </div>
+</div>
+
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+(function(){
+  // ====== limpiar form ======
+  var clearUserForm = @json((bool)($clearUserForm ?? false));
+  var form = document.getElementById('createUserForm');
+  var clearBtn = document.getElementById('clearFormBtn');
 
-  // ✅ Limpia formulario si venimos de "creado"
-  const shouldClear = @json((bool)session('clear_user_form'));
-  if (shouldClear) {
-    const f = document.getElementById('userCreateForm');
-    if (f) f.reset();
-    // también limpia el checklist visual
-    setRule('rule_len', false);
-    setRule('rule_upper', false);
-    setRule('rule_lower', false);
-    setRule('rule_num', false);
-    setRule('rule_special', false);
+  function clearForm(){
+    if(!form) return;
+    form.reset();
+    // dispara validación live
+    updateRules("");
   }
 
-  // ✅ Password strength
-  const pass = document.getElementById('u_password');
-  function setRule(id, ok) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.color = ok ? '#0a7a63' : '#6b7e96';
-    el.style.fontWeight = ok ? '800' : '500';
-  }
-  function checkPass(p) {
-    setRule('rule_len', p.length >= 8);
-    setRule('rule_upper', /[A-Z]/.test(p));
-    setRule('rule_lower', /[a-z]/.test(p));
-    setRule('rule_num', /[0-9]/.test(p));
-    setRule('rule_special', /[^A-Za-z0-9]/.test(p));
-  }
-  if (pass) {
-    pass.addEventListener('input', () => checkPass(pass.value || ''));
-    checkPass(pass.value || '');
+  if(clearBtn){
+    clearBtn.addEventListener('click', clearForm);
   }
 
-  // ✅ Un solo ojo
-  const toggleBtn = document.getElementById('toggleUserPass');
-  if (toggleBtn && pass) {
-    toggleBtn.addEventListener('click', () => {
-      pass.type = (pass.type === 'password') ? 'text' : 'password';
+  // Si venimos de creado OK, limpiar inputs (nivel banco)
+  if(clearUserForm){
+    clearForm();
+  }
+
+  // ====== ojo único ======
+  var passInput = document.getElementById('password');
+  var toggleBtn = document.getElementById('togglePass');
+  var eyeIcon   = document.getElementById('eyeIcon');
+
+  if(toggleBtn && passInput){
+    toggleBtn.addEventListener('click', function(){
+      var show = (passInput.type === 'password');
+      passInput.type = show ? 'text' : 'password';
+      eyeIcon.innerHTML = show
+        ? '<path stroke-linecap="round" stroke-linejoin="round" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>';
+    });
+
+    // quita el icono automático del navegador (Edge/IE)
+    passInput.style.msReveal = "none";
+  }
+
+  // ====== validación live password ======
+  var rulesBox = document.getElementById('passRules');
+
+  function setRule(name, ok){
+    if(!rulesBox) return;
+    var el = rulesBox.querySelector('[data-rule="'+name+'"]');
+    if(!el) return;
+    if(ok) el.classList.add('ok'); else el.classList.remove('ok');
+  }
+
+  function updateRules(val){
+    val = val || "";
+    setRule('len',   val.length >= 8);
+    setRule('upper', /[A-Z]/.test(val));
+    setRule('num',   /[0-9]/.test(val));
+    setRule('spec',  /[^A-Za-z0-9]/.test(val));
+  }
+
+  if(passInput){
+    updateRules(passInput.value || "");
+    passInput.addEventListener('input', function(e){
+      updateRules(e.target.value);
     });
   }
 
-  // ✅ Modal delete: set action + fill data
-  const modal = document.getElementById('deleteUserModal');
-  if (modal) {
-    modal.addEventListener('show.bs.modal', function (event) {
-      const btn = event.relatedTarget;
-      const uid = btn.getAttribute('data-user-id');
-      const un  = btn.getAttribute('data-username') || '—';
-      const em  = btn.getAttribute('data-email') || '—';
+  // ====== modal eliminar (sin confirm()) ======
+  var modal = document.getElementById('deleteModal');
+  var cancel = document.getElementById('cancelDelete');
+  var confirm = document.getElementById('confirmDelete');
 
-      document.getElementById('m_uid').textContent = uid;
-      document.getElementById('m_user').textContent = un;
-      document.getElementById('m_email').textContent = em;
+  var mId = document.getElementById('mId');
+  var mUser = document.getElementById('mUser');
+  var mEmail = document.getElementById('mEmail');
+  var mRole = document.getElementById('mRole');
+  var mActive = document.getElementById('mActive');
 
-      const form = document.getElementById('deleteUserForm');
-      // IMPORTANTE: users.destroy espera userId
-      form.action = "{{ url('/users') }}/" + uid;
+  var currentDeleteId = null;
+
+  function openModal(data){
+    currentDeleteId = data.id;
+
+    mId.textContent = '#'+data.id;
+    mUser.textContent = data.username || '-';
+    mEmail.textContent = data.email || '-';
+    mRole.textContent = data.role || '-';
+    mActive.textContent = (data.active === '1') ? 'ACTIVO' : 'INACTIVO';
+
+    modal.style.display = 'flex';
+  }
+
+  function closeModal(){
+    modal.style.display = 'none';
+    currentDeleteId = null;
+  }
+
+  document.querySelectorAll('[data-open-delete="1"]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      openModal({
+        id: btn.getAttribute('data-user-id'),
+        username: btn.getAttribute('data-username'),
+        email: btn.getAttribute('data-email'),
+        role: btn.getAttribute('data-role'),
+        active: btn.getAttribute('data-active'),
+      });
+    });
+  });
+
+  if(cancel) cancel.addEventListener('click', closeModal);
+  if(modal) modal.addEventListener('click', function(e){
+    if(e.target === modal) closeModal();
+  });
+
+  if(confirm){
+    confirm.addEventListener('click', function(){
+      if(!currentDeleteId) return;
+
+      var formId = 'deleteForm-' + currentDeleteId;
+      var f = document.getElementById(formId);
+      if(f) f.submit();
     });
   }
-});
+})();
 </script>
 @endpush
 @endsection
+
+
 
 
 
