@@ -21,10 +21,14 @@ Route::middleware(['mybank.auth', 'mybank.admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Users (Cobradores)
-    Route::get('/users', [UsersController::class, 'index'])->name('users.index');
-    Route::post('/users', [UsersController::class, 'store'])->name('users.store');
-    Route::patch('/users/{userId}/toggle', [UsersController::class, 'toggleActive'])->name('users.toggle');
-    Route::delete('/users/{userId}', [UsersController::class, 'destroy'])->name('users.destroy');
+    // Users (Cobradores)
+Route::get('/users', [UsersController::class, 'index'])->name('users.index');
+Route::post('/users', [UsersController::class, 'store'])->name('users.store');
+Route::patch('/users/{userId}/toggle', [UsersController::class, 'toggleActive'])->name('users.toggle');
+Route::delete('/users/{userId}', [UsersController::class, 'destroy'])->name('users.destroy');
+
+// ✅ Reset password
+Route::post('/users/{userId}/reset-password', [UsersController::class, 'resetPassword'])->name('users.reset-password');
 
     // Clients
     Route::get('/clients', [ClientsController::class, 'index'])->name('clients.index');

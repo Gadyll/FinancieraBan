@@ -131,61 +131,59 @@
   tr:hover td { background: rgba(26,111,207,.03); }
 
   /* Badges PRO (solo corregimos legibilidad del texto) */
-/* Badges PRO (solo corregimos legibilidad del texto) */
-.badge{
-  display:inline-flex;
-  align-items:center;
-  gap: 8px;
-  padding: 7px 12px;
-  border-radius: 999px;
+  /* Badges PRO (solo corregimos legibilidad del texto) */
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 999px;
 
-  /* ✅ antes tenías un background rojo fijo (#7c0c0c) que ensucia todo */
-  background: #f8fafc;                 /* base neutra (no transparente) */
-  border: 1.5px solid rgba(15,23,42,.14);
+    /* ✅ antes tenías un background rojo fijo (#7c0c0c) que ensucia todo */
+    background: #f8fafc;                 /* base neutra (no transparente) */
+    border: 1.5px solid rgba(15,23,42,.14);
 
-  font-weight: 1000;
-  font-size: 13px;
-  letter-spacing: .02em;
+    font-weight: 1000;
+    font-size: 13px;
+    letter-spacing: .02em;
 
-  /* ✅ texto SIEMPRE legible */
-  color: #0f172a;
+    /* ✅ texto SIEMPRE legible */
+    color: #0f172a;
 
-  line-height: 1;
-  white-space: nowrap;
-}
+    line-height: 1;
+    white-space: nowrap;
+  }
 
-/* ROLES */
-.b-admin{
-  background: #0565e1;                 /* azul suave sólido */
-  color:#1D4ED8;                       /* azul fuerte */
-  border-color: #1a89a4;
-}
+  /* ROLES */
+  .b-admin{
+    background: #0565e1;                 /* azul suave sólido */
+    color:#1D4ED8;                       /* azul fuerte */
+    border-color: #1a89a4;
+  }
 
-.b-user{
-  background: #110357;                 /* verde suave sólido */
-  color:#047857;                       /* verde fuerte */
-  border-color: #010380;
-}
+  .b-user{
+    background: #110357;                 /* verde suave sólido */
+    color:#047857;                       /* verde fuerte */
+    border-color: #010380;
+  }
 
-/* ESTADOS */
-.b-active{
-  background: #005105;                 /* verde suave sólido */
-  color:#065F46;                       /* verde oscuro */
-  border-color: #159606;
-}
+  /* ESTADOS */
+  .b-active{
+    background: #005105;                 /* verde suave sólido */
+    color:#065F46;                       /* verde oscuro */
+    border-color: #159606;
+  }
 
-.b-inactive{
-  background: #de0b0b;                 /* rojo suave sólido */
-  color:#B91C1C;                       /* rojo fuerte */
-  border-color: #ab0808;
-}
+  .b-inactive{
+    background: #de0b0b;                 /* rojo suave sólido */
+    color:#B91C1C;                       /* rojo fuerte */
+    border-color: #ab0808;
+  }
 
-/* (Opcional) mejora contraste dentro de fila hover */
-tr:hover .badge{
-  filter: brightness(0.98);
-}
-
-
+  /* (Opcional) mejora contraste dentro de fila hover */
+  tr:hover .badge{
+    filter: brightness(0.98);
+  }
 
   /* Modal */
   .modalx-backdrop {
@@ -216,22 +214,46 @@ tr:hover .badge{
   .muted { color:#6b7e96; }
 
   /* ===== FIX: QUITAR 2do OJO AUTOMATICO DEL NAVEGADOR (EDGE/CHROME) ===== */
-input[type="password"]::-ms-reveal,
-input[type="password"]::-ms-clear{
-  display:none;
-  width:0;
-  height:0;
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear{
+    display:none;
+    width:0;
+    height:0;
+  }
+
+  /* Chrome/Edge (autofill/cred button) */
+  input[type="password"]::-webkit-credentials-auto-fill-button{
+    visibility:hidden;
+    display:none !important;
+    pointer-events:none;
+    position:absolute;
+    right:0;
+  }
+  /* ===== ACCIONES: botones ordenados y mismo tamaño ===== */
+.actions-wrap{
+  display: grid;
+  grid-template-columns: repeat(2, 160px);  /* 2 columnas, mismo ancho */
+  gap: 10px;
+  justify-content: start;
+  align-items: center;
 }
 
-/* Chrome/Edge (autofill/cred button) */
-input[type="password"]::-webkit-credentials-auto-fill-button{
-  visibility:hidden;
-  display:none !important;
-  pointer-events:none;
-  position:absolute;
-  right:0;
+.actions-wrap .btnx{
+  width: 160px;              /* mismo tamaño */
+  justify-content: center;   /* texto centrado */
+  text-align: center;
+  padding: .75rem 0;         /* alto consistente */
 }
 
+/* En pantallas chicas: 1 columna */
+@media (max-width: 900px){
+  .actions-wrap{
+    grid-template-columns: 1fr;
+  }
+  .actions-wrap .btnx{
+    width: 100%;
+  }
+}
 </style>
 @endpush
 
@@ -324,7 +346,7 @@ input[type="password"]::-webkit-credentials-auto-fill-button{
         </div>
 
         <div style="margin-top:1rem; display:flex; gap:.75rem; flex-wrap:wrap;">
-          <button class="btnx btnx-primary" type="submit">
+          <button class="btnx btnx-primary" type="submit" id="createSubmitBtn">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24"
                  stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/>
@@ -376,52 +398,73 @@ input[type="password"]::-webkit-credentials-auto-fill-button{
                 <td>{{ $u['email'] ?? '-' }}</td>
                 <td>
                   @if($isAdmin)
-  <span class="badge b-admin">ADMIN</span>
-@else
-  <span class="badge b-user">USER</span>
-@endif
-                  
+                    <span class="badge b-admin">ADMIN</span>
+                  @else
+                    <span class="badge b-user">USER</span>
+                  @endif
                 </td>
                 <td>
                   @if($isActive)
-  <span class="badge b-active">ACTIVO</span>
-@else
-  <span class="badge b-inactive">INACTIVO</span>
-@endif
-                </td>
-                <td>
-                  @if($isAdmin)
-                    <span class="muted">Protegido</span>
+                    <span class="badge b-active">ACTIVO</span>
                   @else
-                    <form method="POST" action="{{ route('users.toggle', $u['id']) }}" style="display:inline;">
-                      @csrf
-                      @method('PATCH')
-                      <button class="btnx btnx-soft" type="submit">
-                        {{ $isActive ? 'Desactivar' : 'Activar' }}
-                      </button>
-                    </form>
-
-                    <button
-                      class="btnx btnx-danger"
-                      type="button"
-                      data-open-delete="1"
-                      data-user-id="{{ $u['id'] }}"
-                      data-username="{{ $u['username'] ?? '' }}"
-                      data-email="{{ $u['email'] ?? '' }}"
-                      data-role="{{ $role }}"
-                      data-active="{{ $isActive ? '1' : '0' }}"
-                    >
-                      Eliminar
-                    </button>
-
-                    {{-- Form DELETE real (lo dispara el modal) --}}
-                    <form method="POST" action="{{ route('users.destroy', $u['id']) }}"
-                          id="deleteForm-{{ $u['id'] }}" style="display:none;">
-                      @csrf
-                      @method('DELETE')
-                    </form>
+                    <span class="badge b-inactive">INACTIVO</span>
                   @endif
                 </td>
+                <td>
+  @if($isAdmin)
+    <span class="muted">Protegido</span>
+  @else
+
+    <div class="actions-wrap">
+      <form method="POST" action="{{ route('users.toggle', $u['id']) }}" style="display:inline;">
+        @csrf
+        @method('PATCH')
+        <button class="btnx btnx-soft" type="submit">
+          {{ $isActive ? 'Desactivar' : 'Activar' }}
+        </button>
+      </form>
+
+      <button
+        class="btnx btnx-danger"
+        type="button"
+        data-open-delete="1"
+        data-user-id="{{ $u['id'] }}"
+        data-username="{{ $u['username'] ?? '' }}"
+        data-email="{{ $u['email'] ?? '' }}"
+        data-role="{{ $role }}"
+        data-active="{{ $isActive ? '1' : '0' }}"
+      >
+        Eliminar
+      </button>
+
+      {{-- ✅ RESET PASSWORD --}}
+      <button
+        class="btnx btnx-soft"
+        type="button"
+        data-open-reset="1"
+        data-user-id="{{ $u['id'] }}"
+        data-username="{{ $u['username'] ?? '' }}"
+        data-email="{{ $u['email'] ?? '' }}"
+      >
+        Reset contraseña
+      </button>
+    </div>
+
+    {{-- Form DELETE real (lo dispara el modal) --}}
+    <form method="POST" action="{{ route('users.destroy', $u['id']) }}"
+          id="deleteForm-{{ $u['id'] }}" style="display:none;">
+      @csrf
+      @method('DELETE')
+    </form>
+
+    {{-- Form RESET real (lo dispara el modal) --}}
+    <form method="POST" action="{{ route('users.reset-password', $u['id']) }}"
+          id="resetForm-{{ $u['id'] }}" style="display:none;">
+      @csrf
+    </form>
+
+  @endif
+</td>
               </tr>
             @empty
               <tr>
@@ -435,7 +478,7 @@ input[type="password"]::-webkit-credentials-auto-fill-button{
   </div>
 </div>
 
-{{-- Modal elegante con detalles --}}
+{{-- Modal elegante con detalles (DELETE) --}}
 <div class="modalx-backdrop" id="deleteModal">
   <div class="modalx" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
     <div class="modalx-head">
@@ -468,6 +511,72 @@ input[type="password"]::-webkit-credentials-auto-fill-button{
   </div>
 </div>
 
+{{-- ✅ Modal RESET Password (confirmación con detalles) --}}
+<div class="modalx-backdrop" id="resetModal">
+  <div class="modalx" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+    <div class="modalx-head">
+      <h3 class="modalx-title" id="resetTitle">Confirmación con detalles adicionales</h3>
+      <div class="muted" style="margin-top:.25rem;">
+        Se generará una contraseña temporal para este cobrador. Entrégala de forma segura.
+      </div>
+    </div>
+
+    <div class="modalx-body">
+      <div>Vas a resetear contraseña de:</div>
+
+      <div class="kv" style="margin-top:.9rem;">
+        <div>ID</div><div id="rId">-</div>
+        <div>Username</div><div id="rUser">-</div>
+        <div>Email</div><div id="rEmail">-</div>
+      </div>
+
+      <div style="margin-top:1rem; padding:.75rem .9rem; border-radius:12px; border:1px solid rgba(26,111,207,.22); background: rgba(26,111,207,.06); color:#0b3c77;">
+        <strong>Regla banco:</strong> la contraseña anterior dejará de funcionar inmediatamente.
+      </div>
+    </div>
+
+    <div class="modalx-foot">
+      <button class="btnx btnx-soft" type="button" id="cancelReset">Cancelar</button>
+      <button class="btnx btnx-primary" type="button" id="confirmReset">Generar contraseña temporal</button>
+    </div>
+  </div>
+</div>
+
+{{-- ✅ Modal Resultado RESET (muestra temp_password) --}}
+<div class="modalx-backdrop" id="resetResultModal" style="display:none;">
+  <div class="modalx" role="dialog" aria-modal="true" aria-labelledby="resetResultTitle">
+    <div class="modalx-head">
+      <h3 class="modalx-title" id="resetResultTitle">Contraseña temporal generada</h3>
+      <div class="muted" style="margin-top:.25rem;">
+        Copia y entrega esta contraseña al cobrador. Recomienda cambiarla en el primer acceso.
+      </div>
+    </div>
+
+    <div class="modalx-body">
+      @php($rr = $resetResult ?? null)
+
+      <div class="kv" style="margin-top:.2rem;">
+        <div>Usuario</div><div><strong>{{ $rr['username'] ?? '-' }}</strong></div>
+        <div>ID</div><div>#{{ $rr['user_id'] ?? '-' }}</div>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <div class="field-label">Contraseña temporal</div>
+        <div style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;">
+          <input class="field-input" id="tempPass" type="text" readonly
+                 value="{{ $rr['temp_password'] ?? '' }}" style="max-width: 360px;">
+          <button class="btnx btnx-soft" type="button" id="copyTempPass">Copiar</button>
+        </div>
+        <div class="muted" id="copyMsg" style="margin-top:.4rem; display:none;">Copiado ✅</div>
+      </div>
+    </div>
+
+    <div class="modalx-foot">
+      <button class="btnx btnx-primary" type="button" id="closeResetResult">Listo</button>
+    </div>
+  </div>
+</div>
+
 @push('scripts')
 <script>
 (function(){
@@ -481,6 +590,7 @@ input[type="password"]::-webkit-credentials-auto-fill-button{
     form.reset();
     // dispara validación live
     updateRules("");
+    syncCreateButton();
   }
 
   if(clearBtn){
@@ -520,18 +630,68 @@ input[type="password"]::-webkit-credentials-auto-fill-button{
     if(ok) el.classList.add('ok'); else el.classList.remove('ok');
   }
 
-  function updateRules(val){
+  function rulesState(val){
     val = val || "";
-    setRule('len',   val.length >= 8);
-    setRule('upper', /[A-Z]/.test(val));
-    setRule('num',   /[0-9]/.test(val));
-    setRule('spec',  /[^A-Za-z0-9]/.test(val));
+    return {
+      len:   val.length >= 8,
+      upper: /[A-Z]/.test(val),
+      num:   /[0-9]/.test(val),
+      spec:  /[^A-Za-z0-9]/.test(val)
+    };
+  }
+
+  function updateRules(val){
+    var st = rulesState(val || "");
+    setRule('len',   st.len);
+    setRule('upper', st.upper);
+    setRule('num',   st.num);
+    setRule('spec',  st.spec);
+    return st;
+  }
+
+  // ✅ Bloquear creación si no cumple TODO
+  var submitBtn = document.getElementById('createSubmitBtn');
+  var usernameInput = document.getElementById('username');
+  var emailInput = document.getElementById('email');
+
+  function syncCreateButton(){
+    if(!submitBtn) return;
+
+    var pass = passInput ? (passInput.value || "") : "";
+    var st = updateRules(pass);
+
+    var userOk = usernameInput ? (usernameInput.value || "").trim().length >= 3 : false;
+    var emailOk = emailInput ? (emailInput.value || "").trim().length > 0 : false;
+
+    var passOk = st.len && st.upper && st.num && st.spec;
+
+    var ok = userOk && emailOk && passOk;
+
+    submitBtn.disabled = !ok;
+    submitBtn.style.opacity = ok ? "1" : ".55";
+    submitBtn.style.cursor = ok ? "pointer" : "not-allowed";
   }
 
   if(passInput){
     updateRules(passInput.value || "");
     passInput.addEventListener('input', function(e){
       updateRules(e.target.value);
+      syncCreateButton();
+    });
+  }
+  if(usernameInput) usernameInput.addEventListener('input', syncCreateButton);
+  if(emailInput) emailInput.addEventListener('input', syncCreateButton);
+
+  // Primer sync al cargar
+  syncCreateButton();
+
+  // Si alguien forza submit con Enter, bloquear igual
+  if(form){
+    form.addEventListener('submit', function(e){
+      syncCreateButton();
+      if(submitBtn && submitBtn.disabled){
+        e.preventDefault();
+      }
     });
   }
 
@@ -589,6 +749,93 @@ input[type="password"]::-webkit-credentials-auto-fill-button{
       var formId = 'deleteForm-' + currentDeleteId;
       var f = document.getElementById(formId);
       if(f) f.submit();
+    });
+  }
+
+  // ====== modal reset password ======
+  var resetModal = document.getElementById('resetModal');
+  var cancelReset = document.getElementById('cancelReset');
+  var confirmReset = document.getElementById('confirmReset');
+
+  var rId = document.getElementById('rId');
+  var rUser = document.getElementById('rUser');
+  var rEmail = document.getElementById('rEmail');
+
+  var currentResetId = null;
+
+  function openResetModal(data){
+    currentResetId = data.id;
+    rId.textContent = '#'+data.id;
+    rUser.textContent = data.username || '-';
+    rEmail.textContent = data.email || '-';
+    resetModal.style.display = 'flex';
+  }
+
+  function closeResetModal(){
+    resetModal.style.display = 'none';
+    currentResetId = null;
+  }
+
+  document.querySelectorAll('[data-open-reset="1"]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      openResetModal({
+        id: btn.getAttribute('data-user-id'),
+        username: btn.getAttribute('data-username'),
+        email: btn.getAttribute('data-email'),
+      });
+    });
+  });
+
+  if(cancelReset) cancelReset.addEventListener('click', closeResetModal);
+  if(resetModal) resetModal.addEventListener('click', function(e){
+    if(e.target === resetModal) closeResetModal();
+  });
+
+  if(confirmReset){
+    confirmReset.addEventListener('click', function(){
+      if(!currentResetId) return;
+      var f = document.getElementById('resetForm-' + currentResetId);
+      if(f) f.submit();
+    });
+  }
+
+  // ====== mostrar modal resultado reset si viene de session(reset_result) ======
+  var hasResetResult = @json((bool)($resetResult ?? false));
+  var resetResultModal = document.getElementById('resetResultModal');
+  var closeResetResult = document.getElementById('closeResetResult');
+  var copyBtn = document.getElementById('copyTempPass');
+  var tempPass = document.getElementById('tempPass');
+  var copyMsg = document.getElementById('copyMsg');
+
+  function closeResetResultModal(){
+    if(resetResultModal) resetResultModal.style.display = 'none';
+  }
+
+  if(hasResetResult && resetResultModal){
+    resetResultModal.style.display = 'flex';
+  }
+
+  if(closeResetResult) closeResetResult.addEventListener('click', closeResetResultModal);
+  if(resetResultModal) resetResultModal.addEventListener('click', function(e){
+    if(e.target === resetResultModal) closeResetResultModal();
+  });
+
+  if(copyBtn && tempPass){
+    copyBtn.addEventListener('click', async function(){
+      try {
+        await navigator.clipboard.writeText(tempPass.value || '');
+        if(copyMsg){
+          copyMsg.style.display = 'block';
+          setTimeout(function(){ copyMsg.style.display = 'none'; }, 1400);
+        }
+      } catch(e) {
+        tempPass.select();
+        document.execCommand('copy');
+        if(copyMsg){
+          copyMsg.style.display = 'block';
+          setTimeout(function(){ copyMsg.style.display = 'none'; }, 1400);
+        }
+      }
     });
   }
 })();

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import secrets
+import string
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -28,7 +31,7 @@ def list_users(
 
 
 # =========================
-# POST /users  (Create USER cobrador)
+# POST /users (Create USER cobrador)
 # =========================
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(
@@ -36,14 +39,12 @@ def create_user(
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    # ✅ Solo crear cobradores USER (ADMIN no se crea desde aquí)
     if payload.role != "USER":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Solo se permite crear cobradores con rol USER.",
         )
 
-    # ✅ Username/email únicos
     exists = db.query(User).filter(
         or_(
             User.username == payload.username.strip(),
@@ -99,7 +100,6 @@ def toggle_user_active(
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    # ✅ ADMIN no se toca
     if user.role == UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="No puedes modificar un ADMIN.")
 
@@ -111,8 +111,8 @@ def toggle_user_active(
 
 # =========================
 # DELETE /users/{user_id}
-# Hard delete “nivel banco”:
-# - Si tiene historial (payments.user_id), NO se borra (409) -> solo desactivar
+# Hard delete:
+# - si tiene historial (payments.user_id) => 409 (solo desactivar)
 # =========================
 @router.delete("/{user_id}")
 def delete_user(
@@ -124,21 +124,68 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    # ✅ ADMIN jamás se elimina
     if user.role == UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="No puedes eliminar un ADMIN.")
 
-    # ✅ Historial real: pagos cobrados por este USER
     payments_count = db.query(Payment).filter(Payment.user_id == user_id).count()
-
     if payments_count > 0:
-        # Nivel banco: no borras si hay historial -> solo desactivar
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"No se puede eliminar: este cobrador tiene historial de pagos ({payments_count}). Solo puedes desactivar.",
         )
 
-    # ✅ Hard delete definitivo
     db.delete(user)
     db.commit()
     return {"ok": True, "message": "Usuario eliminado definitivamente."}
+
+
+# =========================
+# POST /users/{user_id}/reset-password
+# Solo ADMIN, solo USER, devuelve temp_password
+# =========================
+@router.post("/{user_id}/reset-password")
+def reset_password(
+    user_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    # ADMIN no se toca
+    if user.role == UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="No puedes resetear contraseña de un ADMIN.")
+
+    # Si está inactivo, igual puedes resetear para recuperar acceso (nivel banco)
+    # (si quieres bloquearlo, dime y lo cambiamos)
+
+    # Generador de contraseña temporal “bank-grade”
+    # - 12 chars
+    # - al menos 1 mayúscula, 1 minúscula, 1 número, 1 especial
+    upper = string.ascii_uppercase
+    lower = string.ascii_lowercase
+    nums = string.digits
+    spec = "!@#$%^&*()-_=+[]{}:,.?"
+
+    temp = [
+        secrets.choice(upper),
+        secrets.choice(lower),
+        secrets.choice(nums),
+        secrets.choice(spec),
+    ]
+    alphabet = upper + lower + nums + spec
+    temp += [secrets.choice(alphabet) for _ in range(8)]  # total 12
+    secrets.SystemRandom().shuffle(temp)
+    temp_password = "".join(temp)
+
+    user.password_hash = hash_password(temp_password)
+    db.commit()
+
+    return {
+        "ok": True,
+        "user_id": user.id,
+        "username": user.username,
+        "temp_password": temp_password,
+        "message": "Contraseña reseteada. Entrega la contraseña temporal al cobrador.",
+    }

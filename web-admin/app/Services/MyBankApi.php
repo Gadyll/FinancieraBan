@@ -241,6 +241,19 @@ public function toggleUserActive(string $accessToken, int $userId): array
 
         return $this->ok($response);
     }
+    public function resetUserPassword(string $accessToken, int $userId): array
+{
+    $response = Http::acceptJson()
+        ->withToken($accessToken)
+        ->timeout(15)
+        ->post($this->baseUrl . "/users/{$userId}/reset-password");
+
+    if ($response->failed()) {
+        return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+    }
+
+    return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
+}
 }
 
 

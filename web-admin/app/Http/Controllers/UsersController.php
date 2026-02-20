@@ -16,7 +16,6 @@ class UsersController extends Controller
 
         $error = null;
         $users = [];
-
         $res = $api->users($accessToken);
 
         if (!$res['ok']) {
@@ -25,11 +24,13 @@ class UsersController extends Controller
             $users = is_array($res['data']) ? $res['data'] : ($res['data']['data'] ?? []);
         }
 
-        // 🔥 IMPORTANTE: tu vista está en auth/users
         return view('auth.users.index', [
             'users' => $users,
             'error' => $error,
             'clearUserForm' => (bool) session('clear_user_form', false),
+
+            // ✅ Para mostrar modal de resultado del reset
+            'resetResult' => session('reset_result'),
         ]);
     }
 
@@ -40,7 +41,6 @@ class UsersController extends Controller
             return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
         }
 
-        // ✅ Validación estricta contraseña
         $validated = $request->validate([
             'username' => ['required', 'string', 'min:3', 'max:50'],
             'email'    => ['required', 'email'],
@@ -49,12 +49,15 @@ class UsersController extends Controller
                 'string',
                 'min:8',
                 'max:128',
-                'regex:/[A-Z]/',           // mayúscula
-                'regex:/[0-9]/',           // número
-                'regex:/[^A-Za-z0-9]/',    // especial
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
             ],
         ], [
-            'password.regex' => 'La contraseña debe incluir mayúscula, número y caracter especial.',
+            'username.required' => 'El username es obligatorio.',
+            'email.required'    => 'El correo es obligatorio.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.regex'    => 'La contraseña debe incluir mayúscula, número y caracter especial.',
         ]);
 
         $payload = [
@@ -68,7 +71,6 @@ class UsersController extends Controller
 
         if (!$res['ok']) {
             $msg = $res['data']['detail'] ?? $res['data']['message'] ?? json_encode($res['data']);
-
             return redirect()
                 ->route('users.index')
                 ->withErrors(['users' => "No se pudo crear cobrador: ({$res['status']}) {$msg}"])
@@ -117,10 +119,34 @@ class UsersController extends Controller
 
             return redirect()
                 ->route('users.index')
-                ->withErrors(['users' => "No se pudo eliminar."]);
+                ->withErrors(['users' => "No se pudo eliminar: ({$res['status']}) " . json_encode($res['data'])]);
         }
 
-        return redirect()->route('users.index')->with('ok', 'Cobrador eliminado.');
+        return redirect()->route('users.index')->with('ok', 'Cobrador eliminado definitivamente.');
+    }
+
+    // ✅ RESET PASSWORD (solo ADMIN)
+    public function resetPassword(string $userId, MyBankApi $api)
+    {
+        $accessToken = session('mybank_access_token');
+        if (!$accessToken) {
+            return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
+        }
+
+        $res = $api->resetUserPassword($accessToken, (int)$userId);
+
+        if (!$res['ok']) {
+            $msg = $res['data']['detail'] ?? $res['data']['message'] ?? json_encode($res['data']);
+            return redirect()
+                ->route('users.index')
+                ->withErrors(['users' => "No se pudo resetear contraseña: ({$res['status']}) {$msg}"]);
+        }
+
+        // Guardamos resultado para mostrar modal con la temp_password
+        return redirect()
+            ->route('users.index')
+            ->with('reset_result', $res['data'])
+            ->with('ok', 'Contraseña reseteada. Copia y entrega la contraseña temporal al cobrador.');
     }
 }
 
