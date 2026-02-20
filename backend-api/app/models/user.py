@@ -19,7 +19,10 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    # Login (puedes usar username o email; aquí dejamos ambos opcionales)
+    # ✅ Folio visible (NO es el id)
+    user_number: Mapped[int] = mapped_column(Integer, unique=True, index=True, nullable=False)
+
+    # Login
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     email: Mapped[str | None] = mapped_column(String(120), unique=True, index=True, nullable=True)
 
@@ -38,4 +41,4 @@ class User(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<User id={self.id} username={self.username} role={self.role}>"
+        return f"<User id={self.id} folio={self.user_number} username={self.username} role={self.role}>"

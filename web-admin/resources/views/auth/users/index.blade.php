@@ -393,7 +393,7 @@
                 $isAdmin = ($role === 'ADMIN');
               @endphp
               <tr>
-                <td>#{{ $u['id'] ?? '-' }}</td>
+                <td>#{{ $u['user_number'] ?? ($u['id'] ?? '-') }}</td>
                 <td><strong>{{ $u['username'] ?? '-' }}</strong></td>
                 <td>{{ $u['email'] ?? '-' }}</td>
                 <td>
@@ -711,7 +711,7 @@
   function openModal(data){
     currentDeleteId = data.id;
 
-    mId.textContent = '#'+data.id;
+    mId.textContent = '#'+(data.user_number || data.id);
     mUser.textContent = data.username || '-';
     mEmail.textContent = data.email || '-';
     mRole.textContent = data.role || '-';

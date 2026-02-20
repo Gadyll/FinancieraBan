@@ -5,7 +5,7 @@ import string
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 from app.database.session import get_db
 from app.core.dependencies import require_admin
@@ -32,6 +32,7 @@ def list_users(
 
 # =========================
 # POST /users (Create USER cobrador)
+# - user_number = folio visible continuo (no depende del id)
 # =========================
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(
@@ -58,7 +59,12 @@ def create_user(
             detail="Username o email ya existe.",
         )
 
+    # ✅ Folio continuo: max(user_number) + 1
+    max_folio = db.query(func.max(User.user_number)).scalar()
+    next_folio = (int(max_folio) if max_folio is not None else 0) + 1
+
     user = User(
+        user_number=next_folio,
         username=payload.username.strip(),
         email=str(payload.email).strip(),
         password_hash=hash_password(payload.password),
@@ -153,16 +159,10 @@ def reset_password(
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    # ADMIN no se toca
     if user.role == UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="No puedes resetear contraseña de un ADMIN.")
 
-    # Si está inactivo, igual puedes resetear para recuperar acceso (nivel banco)
-    # (si quieres bloquearlo, dime y lo cambiamos)
-
     # Generador de contraseña temporal “bank-grade”
-    # - 12 chars
-    # - al menos 1 mayúscula, 1 minúscula, 1 número, 1 especial
     upper = string.ascii_uppercase
     lower = string.ascii_lowercase
     nums = string.digits
@@ -185,6 +185,7 @@ def reset_password(
     return {
         "ok": True,
         "user_id": user.id,
+        "user_number": user.user_number,
         "username": user.username,
         "temp_password": temp_password,
         "message": "Contraseña reseteada. Entrega la contraseña temporal al cobrador.",
