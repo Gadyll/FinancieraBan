@@ -11,23 +11,29 @@ class ClientsController extends Controller
     {
         $accessToken = session('mybank_access_token');
         if (!$accessToken) {
-            return redirect()->route('login')->withErrors(['login' => 'Sesión inválida. Inicia sesión de nuevo.']);
+            return redirect()->route('login')->withErrors([
+                'login' => 'Sesión inválida. Inicia sesión de nuevo.'
+            ]);
         }
 
         $error = null;
 
-        // 1) Traer clientes
+        // Clientes
         $clientsResp = $api->clients($accessToken, 0, 500);
         $clients = [];
+
         if (!$clientsResp['ok']) {
             $error = "CLIENTS FALLÓ ({$clientsResp['status']}): " . json_encode($clientsResp['data']);
         } else {
-            $clients = $clientsResp['data'];
+            $clients = is_array($clientsResp['data'])
+                ? $clientsResp['data']
+                : ($clientsResp['data']['data'] ?? []);
         }
 
-        // 2) Traer users (para dropdown de asignación)
+        // Cobradores activos
         $usersResp = $api->users($accessToken, 0, 500);
         $collectors = [];
+
         if (!$usersResp['ok']) {
             $error = trim(($error ? $error . "\n" : '') . "USERS FALLÓ ({$usersResp['status']}): " . json_encode($usersResp['data']));
         } else {
@@ -37,10 +43,13 @@ class ClientsController extends Controller
                 ->all();
         }
 
+        $maritalOptions = ['SOLTERO', 'CASADO', 'UNION LIBRE', 'VIUDO', 'DIVORCIADO'];
+
         return view('auth.clients.index', [
             'clients' => $clients,
             'collectors' => $collectors,
             'error' => $error,
+            'maritalOptions' => $maritalOptions,
         ]);
     }
 
@@ -48,14 +57,26 @@ class ClientsController extends Controller
     {
         $accessToken = session('mybank_access_token');
         if (!$accessToken) {
-            return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
+            return redirect()->route('login')->withErrors([
+                'login' => 'Sesión inválida.'
+            ]);
         }
 
-        // ⚠️ Ajusta estos campos según tu schema real de FastAPI (ClientCreate)
+        $maritalOptions = ['SOLTERO', 'CASADO', 'UNION LIBRE', 'VIUDO', 'DIVORCIADO'];
+
         $data = $request->validate([
             'client_number' => ['required', 'string', 'min:1', 'max:30'],
-            'full_name'     => ['required', 'string', 'min:3', 'max:150'],
-            'phone'         => ['required', 'digits:10'], // validación real: 10 dígitos
+            'full_name' => ['required', 'string', 'min:3', 'max:150'],
+            'address' => ['required', 'string', 'min:3', 'max:255'],
+            'phone' => ['required', 'digits:10'],
+
+            'marital_status' => ['required', 'in:' . implode(',', $maritalOptions)],
+            'spouse_full_name' => ['nullable', 'string', 'max:150'],
+
+            'guarantor_full_name' => ['required', 'string', 'min:3', 'max:150'],
+            'guarantor_address' => ['required', 'string', 'min:3', 'max:255'],
+            'guarantor_phone' => ['required', 'digits:10'],
+            'guarantor_marital_status' => ['required', 'in:' . implode(',', $maritalOptions)],
         ]);
 
         $resp = $api->createClient($accessToken, $data);
@@ -73,13 +94,25 @@ class ClientsController extends Controller
     {
         $accessToken = session('mybank_access_token');
         if (!$accessToken) {
-            return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
+            return redirect()->route('login')->withErrors([
+                'login' => 'Sesión inválida.'
+            ]);
         }
 
-        // PATCH (solo lo editable)
+        $maritalOptions = ['SOLTERO', 'CASADO', 'UNION LIBRE', 'VIUDO', 'DIVORCIADO'];
+
         $data = $request->validate([
             'full_name' => ['required', 'string', 'min:3', 'max:150'],
-            'phone'     => ['required', 'digits:10'],
+            'address' => ['required', 'string', 'min:3', 'max:255'],
+            'phone' => ['required', 'digits:10'],
+
+            'marital_status' => ['required', 'in:' . implode(',', $maritalOptions)],
+            'spouse_full_name' => ['nullable', 'string', 'max:150'],
+
+            'guarantor_full_name' => ['required', 'string', 'min:3', 'max:150'],
+            'guarantor_address' => ['required', 'string', 'min:3', 'max:255'],
+            'guarantor_phone' => ['required', 'digits:10'],
+            'guarantor_marital_status' => ['required', 'in:' . implode(',', $maritalOptions)],
         ]);
 
         $resp = $api->updateClient($accessToken, $clientId, $data);
@@ -97,14 +130,16 @@ class ClientsController extends Controller
     {
         $accessToken = session('mybank_access_token');
         if (!$accessToken) {
-            return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
+            return redirect()->route('login')->withErrors([
+                'login' => 'Sesión inválida.'
+            ]);
         }
 
         $data = $request->validate([
             'user_id' => ['required', 'integer', 'min:1'],
         ]);
 
-        $resp = $api->assignClient($accessToken, $clientId, (int)$data['user_id']);
+        $resp = $api->assignClient($accessToken, $clientId, (int) $data['user_id']);
 
         if (!$resp['ok']) {
             return back()->withErrors([

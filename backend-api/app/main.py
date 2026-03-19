@@ -1,15 +1,19 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+import os
 
+from app.database.init_db import init_db
 from app.core.config import settings
 from app.core.exceptions import MyBankException
 from app.api.v1.router import router as v1_router
 
-from fastapi.staticfiles import StaticFiles
-import os
-
 app = FastAPI(title=settings.APP_NAME)
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # backend-api/
 TICKETS_DIR = os.path.join(BASE_DIR, "storage", "tickets")
@@ -43,7 +47,7 @@ async def mybank_exception_handler(request: Request, exc: MyBankException):
         content={"error": exc.message, "details": exc.details},
     )
 
-# Handler genérico (no filtra info sensible)
+# Handler genérico
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     return JSONResponse(

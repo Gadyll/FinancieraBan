@@ -13,8 +13,13 @@ def _money(v: Decimal) -> Decimal:
     return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+def _rate(v: Decimal) -> Decimal:
+    return v.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+
 def calculate_total(principal: Decimal, interest_rate: Decimal) -> Decimal:
-    total = principal + (principal * (interest_rate / Decimal("100")))
+    # interest_rate es porcentaje (ej 20.0000)
+    total = principal + (principal * (_rate(interest_rate) / Decimal("100")))
     return _money(total)
 
 
@@ -46,7 +51,7 @@ def generate_schedule_rows(
 
         amount_due = payment_amount
         if n == payments_count:
-            amount_due = _money(total_amount - acumulado)  # ajuste por centavos
+            amount_due = _money(total_amount - acumulado)
 
         rows.append(
             LoanSchedule(
@@ -86,17 +91,17 @@ def create_loan_with_schedule(
         client_id=client_id,
         cycle_number=cycle,
         principal_amount=_money(principal_amount),
-        interest_rate=_money(interest_rate),
+        interest_rate=_rate(interest_rate),   # ✅ 4 decimales
         total_amount=total_amount,
         payment_amount=payment_amount,
-        frequency=frequency,   # "WEEKLY" / "BIWEEKLY" / "MONTHLY"
+        frequency=frequency,
         payments_count=payments_count,
         start_date=start_date,
         status="ACTIVE",
     )
 
     db.add(loan)
-    db.flush()  # obtiene loan.id
+    db.flush()
 
     schedule_rows = generate_schedule_rows(
         loan_id=loan.id,

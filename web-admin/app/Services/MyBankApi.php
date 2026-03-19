@@ -13,7 +13,6 @@ class MyBankApi
         $this->baseUrl = rtrim($baseUrl ?: (string) config('mybank_api.base_url', ''), '/');
 
         if ($this->baseUrl === '') {
-            // Evita errores silenciosos si no configuras la URL
             $this->baseUrl = 'http://127.0.0.1:8000/api/v1';
         }
     }
@@ -30,10 +29,6 @@ class MyBankApi
         return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
     }
 
-    /**
-     * ✅ Devuelve int timestamp (exp) del JWT o null.
-     * (Para que middleware compare con time() sin error Carbon->int)
-     */
     public function jwtExp(string $jwt): ?int
     {
         try {
@@ -147,48 +142,60 @@ class MyBankApi
     }
 
     public function createUser(string $accessToken, array $payload): array
-{
-    $response = Http::acceptJson()
-        ->withToken($accessToken)
-        ->timeout(15)
-        ->post($this->baseUrl . '/users', $payload);
+    {
+        $response = Http::acceptJson()
+            ->withToken($accessToken)
+            ->timeout(15)
+            ->post($this->baseUrl . '/users', $payload);
 
-    if ($response->failed()) {
-        return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+        if ($response->failed()) {
+            return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+        }
+
+        return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
     }
 
-    return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
-}
+    public function deleteUser(string $accessToken, int $userId): array
+    {
+        $response = Http::acceptJson()
+            ->withToken($accessToken)
+            ->timeout(15)
+            ->delete($this->baseUrl . "/users/{$userId}");
 
-public function deleteUser(string $accessToken, int $userId): array
-{
-    $response = Http::acceptJson()
-        ->withToken($accessToken)
-        ->timeout(15)
-        ->delete($this->baseUrl . "/users/{$userId}");
+        if ($response->failed()) {
+            return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+        }
 
-    if ($response->failed()) {
-        return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+        return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
     }
 
-    return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
-}
+    public function toggleUserActive(string $accessToken, int $userId): array
+    {
+        $response = Http::acceptJson()
+            ->withToken($accessToken)
+            ->timeout(15)
+            ->patch($this->baseUrl . "/users/{$userId}/toggle-active");
 
+        if ($response->failed()) {
+            return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+        }
 
-public function toggleUserActive(string $accessToken, int $userId): array
-{
-    $response = Http::acceptJson()
-        ->withToken($accessToken)
-        ->timeout(15)
-        ->patch($this->baseUrl . "/users/{$userId}/toggle-active");
-
-    if ($response->failed()) {
-        return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+        return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
     }
 
-    return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
-}
+    public function resetUserPassword(string $accessToken, int $userId): array
+    {
+        $response = Http::acceptJson()
+            ->withToken($accessToken)
+            ->timeout(15)
+            ->post($this->baseUrl . "/users/{$userId}/reset-password");
 
+        if ($response->failed()) {
+            return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+        }
+
+        return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
+    }
 
     // =========================
     // CLIENTS
@@ -227,11 +234,14 @@ public function toggleUserActive(string $accessToken, int $userId): array
         return $this->ok($response);
     }
 
+    /**
+     * ✅ COMPAT:
+     * - Backend viejo: POST /clients/{client_id}/assign/{user_id}
+     * - Backend nuevo: POST /clients/{client_id}/assign  body {user_id}
+     */
     public function assignClient(string $accessToken, int $clientId, int $userId): array
     {
-        // OJO: tú tenías /clients/{clientId}/assign/{$userId}
-        // tu routes/web.php dice POST /clients/{clientId}/assign
-        // aquí dejo la versión más común: /clients/{clientId}/assign con body {user_id}
+        // 1) Intento versión "nueva" (body)
         $response = Http::acceptJson()
             ->timeout(15)
             ->withToken($accessToken)
@@ -239,21 +249,54 @@ public function toggleUserActive(string $accessToken, int $userId): array
                 'user_id' => $userId,
             ]);
 
+        if (!$response->failed()) {
+            return $this->ok($response);
+        }
+
+        // 2) Fallback versión "vieja" (path param)
+        if (in_array($response->status(), [404, 405])) {
+            $fallback = Http::acceptJson()
+                ->timeout(15)
+                ->withToken($accessToken)
+                ->post($this->baseUrl . "/clients/{$clientId}/assign/{$userId}");
+
+            return $this->ok($fallback);
+        }
+
         return $this->ok($response);
     }
-    public function resetUserPassword(string $accessToken, int $userId): array
-{
-    $response = Http::acceptJson()
-        ->withToken($accessToken)
-        ->timeout(15)
-        ->post($this->baseUrl . "/users/{$userId}/reset-password");
 
-    if ($response->failed()) {
-        return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+    // ====== PREPARADOS PARA SIGUIENTE PASO (HISTORIAL) ======
+
+    public function clientLoans(string $accessToken, int $clientId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . "/clients/{$clientId}/loans");
+
+        return $this->ok($response);
     }
 
-    return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
-}
+    public function clientDashboard(string $accessToken, int $clientId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . "/clients/{$clientId}/dashboard");
+
+        return $this->ok($response);
+    }
+
+    public function loanSummary(string $accessToken, int $loanId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . "/loans/{$loanId}/summary");
+
+        return $this->ok($response);
+    }
 }
 
 
