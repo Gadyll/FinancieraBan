@@ -1,384 +1,349 @@
 @extends('layouts.app')
-
-@section('title', 'Clientes - MYBANK')
+@section('title', 'Clientes — MYBANK')
 
 @push('styles')
 <style>
-  .surfacex{
-    background:#fff;
-    border:1px solid rgba(26,111,207,.14);
-    border-radius:16px;
-    box-shadow:0 8px 28px rgba(13,27,46,.08);
-  }
-  .surfacex-pad{ padding:1rem 1.1rem; }
+/* Formulario lateral */
+.form-card {
+    background: #fff; border: 1px solid rgba(26,111,207,.12);
+    border-radius: 14px; box-shadow: 0 4px 20px rgba(13,27,46,.07);
+    overflow: hidden; position: sticky; top: 80px;
+}
+.form-card-head {
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: #fff; padding: 1rem 1.25rem;
+}
+.form-card-title { font-weight: 900; font-size: 1rem; margin: 0; }
+.form-card-sub   { font-size: .83rem; opacity: .80; margin-top: .2rem; }
+.form-card-body  { padding: 1.25rem; }
 
-  .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:.85rem; }
-  @media (max-width: 992px){ .grid2{ grid-template-columns: 1fr; } }
+/* Sección dentro del form */
+.form-section {
+    font-size: .72rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .10em; color: var(--blue);
+    padding: .5rem 0 .4rem;
+    border-bottom: 2px solid rgba(26,111,207,.12);
+    margin-bottom: .85rem; margin-top: 1rem;
+    display: flex; align-items: center; gap: .5rem;
+}
+.form-section:first-child { margin-top: 0; }
+.form-section svg { opacity: .7; }
 
-  .field-label{
-    display:block;
-    font-weight:900;
-    font-size:.86rem;
-    color:#3a4d65;
-    margin-bottom:.35rem;
-  }
+/* Tabla clientes */
+.client-num  { font-weight: 800; font-family: 'Courier New', monospace; color: var(--blue); font-size: .88rem; }
+.client-name { font-weight: 700; }
+.client-sub  { font-size: .80rem; color: var(--muted); margin-top: .1rem; }
 
-  .field-input{
-    width:100%;
-    padding:.70rem .9rem;
-    border:1.5px solid rgba(26,111,207,.16);
-    border-radius:12px;
-    background:#f8faff;
-    outline:none;
-    transition:.15s;
-  }
+/* Assign form inline */
+.assign-inline {
+    display: flex; gap: .4rem; align-items: center; flex-wrap: wrap;
+}
+.assign-inline select {
+    flex: 1; min-width: 130px; padding: .38rem .65rem;
+    border: 1.5px solid rgba(26,111,207,.18); border-radius: 8px;
+    background: #fafcff; font-family: 'Outfit', sans-serif;
+    font-size: .83rem; color: var(--text); outline: none;
+}
+.assign-inline select:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(26,111,207,.10);
+}
 
-  .field-input:focus{
-    background:#fff;
-    border-color: rgba(26,111,207,.45);
-    box-shadow:0 0 0 3px rgba(26,111,207,.12);
-  }
+/* Loan status */
+.loan-st { font-size: .76rem; font-weight: 700; }
 
-  .btnx{
-    border:0;
-    border-radius:12px;
-    padding:.70rem 1rem;
-    font-weight:900;
-    cursor:pointer;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:.45rem;
-    transition:.15s;
-    white-space:nowrap;
-    min-width:140px;
-    text-decoration:none;
-  }
-
-  .btnx-primary{
-    color:#fff;
-    background: linear-gradient(135deg, #1a6fcf 0%, #1259b0 100%);
-    box-shadow: 0 4px 18px rgba(26,111,207,.25);
-  }
-
-  .btnx-primary:hover{
-    filter:brightness(1.06);
-    transform: translateY(-1px);
-  }
-
-  .btnx-soft{
-    background: rgba(26,111,207,.08);
-    border: 1px solid rgba(26,111,207,.18);
-    color:#1a6fcf;
-  }
-
-  .table-wrap{
-    border-radius:16px;
-    overflow:auto;
-    border: 1px solid rgba(26,111,207,.14);
-  }
-
-  table{
-    width:100%;
-    border-collapse: collapse;
-    min-width:1080px;
-  }
-
-  th,td{
-    padding:.8rem .85rem;
-    border-bottom: 1px solid rgba(26,111,207,.10);
-    vertical-align: middle;
-  }
-
-  th{
-    font-size:.78rem;
-    letter-spacing:.10em;
-    text-transform: uppercase;
-    color:#6b7e96;
-    background: rgba(26,111,207,.04);
-    font-weight:900;
-  }
-
-  tr:hover td{
-    background: rgba(26,111,207,.03);
-  }
-
-  .badgex{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:7px 12px;
-    border-radius:999px;
-    border:1.5px solid rgba(15,23,42,.14);
-    font-weight:1000;
-    font-size:13px;
-    letter-spacing:.02em;
-    line-height:1;
-    white-space:nowrap;
-  }
-
-  .b-ok{
-    background: rgba(18,169,138,.10);
-    color:#065F46;
-    border-color: rgba(18,169,138,.30);
-  }
-
-  .b-bad{
-    background: rgba(224,58,58,.10);
-    color:#B91C1C;
-    border-color: rgba(224,58,58,.30);
-  }
-
-  .b-none{
-    background: rgba(26,111,207,.08);
-    color:#1a6fcf;
-    border-color: rgba(26,111,207,.22);
-  }
-
-  .assign-row{
-    display:flex;
-    gap:.6rem;
-    align-items:center;
-    flex-wrap:wrap;
-  }
-
-  .assign-row select{
-    min-width:220px;
-  }
-
-  .mono{
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  }
-
-  .muted{ color:#6b7e96; }
-  .section-title{ margin:0; font-weight:1000; }
-  .help{ color:#6b7e96; margin:.25rem 0 0 0; }
-  .hrx{ height:1px; background: rgba(26,111,207,.10); margin:1rem 0; border:0; }
+/* Search bar */
+.search-bar {
+    padding: .85rem 1.25rem; border-bottom: 1px solid rgba(26,111,207,.10);
+    background: #fafcff; display: flex; gap: .65rem; align-items: center; flex-wrap: wrap;
+}
 </style>
 @endpush
 
 @section('content')
 @php
-    $errorText = $error ?? null;
     $maritalOptions = $maritalOptions ?? ['SOLTERO','CASADO','UNION LIBRE','VIUDO','DIVORCIADO'];
 @endphp
 
-<div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
+<div class="page-header">
     <div>
-        <h1 class="page-title mb-1">Clientes</h1>
-        <p class="page-sub mb-0">Crea, edita y asigna clientes a cobradores. Incluye AVAL obligatorio y estatus de pagos.</p>
+        <div class="breadcrumb">
+            <a href="{{ route('dashboard') }}">Dashboard</a>
+            <span class="breadcrumb-sep">›</span>
+            Clientes
+        </div>
+        <h1 class="page-title">Clientes</h1>
+        <p class="page-sub">{{ count($clients) }} cliente(s) registrado(s). Registra o asigna cobradores aquí.</p>
     </div>
-
-    <a href="{{ route('dashboard') }}" class="btnx btnx-soft">
-        Volver
-    </a>
 </div>
 
-@if($errorText)
-    <div class="alert alert-danger mb-3">{{ $errorText }}</div>
+{{-- Mensajes --}}
+@if(!empty($error))
+    <div class="alert alert-danger">⚠ {{ $error }}</div>
 @endif
-
 @if(session('success'))
-    <div class="alert alert-success mb-3">{{ session('success') }}</div>
+    <div class="alert alert-success">✓ {{ session('success') }}</div>
 @endif
-
 @if($errors->any())
-    <div class="alert alert-danger mb-3">
-        {{ $errors->first() }}
-    </div>
+    <div class="alert alert-danger">{{ $errors->first() }}</div>
 @endif
 
 <div class="row g-3">
-    <div class="col-12 col-lg-5">
-        <div class="surfacex surfacex-pad">
-            <h2 class="section-title">Crear cliente</h2>
-            <p class="help">Campos obligatorios: cliente + aval.</p>
 
-            <form method="POST" action="{{ route('clients.store') }}" autocomplete="off">
-                @csrf
+    {{-- ══════ FORMULARIO ══════ --}}
+    <div class="col-12 col-xl-4">
+        <div class="form-card">
+            <div class="form-card-head">
+                <div class="form-card-title">
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle;margin-right:.35rem;">
+                        <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Registrar nuevo cliente
+                </div>
+                <div class="form-card-sub">El número de cliente se asigna automáticamente.</div>
+            </div>
+            <div class="form-card-body">
+                <form method="POST" action="{{ route('clients.store') }}" autocomplete="off">
+                    @csrf
 
-                <hr class="hrx">
-                <h3 class="section-title" style="font-size:1rem;">Datos del cliente</h3>
-
-                <div class="grid2" style="margin-top:.8rem;">
-                    <div>
-                        <label class="field-label">Número de cliente</label>
-                        <input class="field-input" name="client_number" value="{{ old('client_number') }}" placeholder="C0001" required>
+                    <div class="form-section">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 20v-1a5 5 0 015-5h6a5 5 0 015 5v1"/>
+                        </svg>
+                        Datos personales
                     </div>
 
-                    <div>
-                        <label class="field-label">Teléfono (10 dígitos)</label>
-                        <input class="field-input" name="phone" value="{{ old('phone') }}" placeholder="4421234567" required>
-                    </div>
-                </div>
-
-                <div style="margin-top:.85rem;">
-                    <label class="field-label">Nombre completo</label>
-                    <input class="field-input" name="full_name" value="{{ old('full_name') }}" placeholder="Juan Pérez" required>
-                </div>
-
-                <div style="margin-top:.85rem;">
-                    <label class="field-label">Dirección</label>
-                    <input class="field-input" name="address" value="{{ old('address') }}" placeholder="Calle, número, colonia, municipio" required>
-                </div>
-
-                <div class="grid2" style="margin-top:.85rem;">
-                    <div>
-                        <label class="field-label">Estado civil</label>
-                        <select class="field-input" name="marital_status" required>
-                            <option value="">Selecciona</option>
-                            @foreach($maritalOptions as $op)
-                                <option value="{{ $op }}" @selected(old('marital_status') === $op)>{{ $op }}</option>
-                            @endforeach
-                        </select>
+                    <div class="field">
+                        <label class="field-label field-required">Nombre completo</label>
+                        <input class="field-input" name="full_name" value="{{ old('full_name') }}" maxlength="150" required placeholder="Juan Pérez García">
                     </div>
 
-                    <div>
-                        <label class="field-label">Nombre del cónyuge (opcional)</label>
-                        <input class="field-input" name="spouse_full_name" value="{{ old('spouse_full_name') }}" placeholder="Solo si aplica">
-                    </div>
-                </div>
-
-                <hr class="hrx">
-                <h3 class="section-title" style="font-size:1rem;">Datos del aval (obligatorio)</h3>
-
-                <div style="margin-top:.8rem;">
-                    <label class="field-label">Nombre completo del aval</label>
-                    <input class="field-input" name="guarantor_full_name" value="{{ old('guarantor_full_name') }}" placeholder="Nombre del aval" required>
-                </div>
-
-                <div style="margin-top:.85rem;">
-                    <label class="field-label">Dirección del aval</label>
-                    <input class="field-input" name="guarantor_address" value="{{ old('guarantor_address') }}" placeholder="Dirección completa" required>
-                </div>
-
-                <div class="grid2" style="margin-top:.85rem;">
-                    <div>
-                        <label class="field-label">Teléfono del aval (10 dígitos)</label>
-                        <input class="field-input" name="guarantor_phone" value="{{ old('guarantor_phone') }}" placeholder="4421234567" required>
+                    <div class="grid-2">
+                        <div class="field">
+                            <label class="field-label field-required">Teléfono</label>
+                            <input class="field-input digits-only" name="phone" value="{{ old('phone') }}"
+                                   placeholder="4421234567" maxlength="10" inputmode="numeric" required>
+                            <div class="field-hint">10 dígitos</div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label field-required">Estado civil</label>
+                            <select class="field-input field-select" name="marital_status" required>
+                                <option value="">— Seleccionar —</option>
+                                @foreach($maritalOptions as $op)
+                                    <option value="{{ $op }}" @selected(old('marital_status') === $op)>{{ $op }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="field-label">Estado civil del aval</label>
-                        <select class="field-input" name="guarantor_marital_status" required>
-                            <option value="">Selecciona</option>
-                            @foreach($maritalOptions as $op)
-                                <option value="{{ $op }}" @selected(old('guarantor_marital_status') === $op)>{{ $op }}</option>
-                            @endforeach
-                        </select>
+                    <div class="field">
+                        <label class="field-label field-required">Dirección</label>
+                        <input class="field-input" name="address" value="{{ old('address') }}" maxlength="255" required placeholder="Calle, Número, Colonia, Ciudad">
                     </div>
-                </div>
 
-                <div style="margin-top:1rem;">
-                    <button class="btnx btnx-primary" type="submit" style="width:100%;">
-                        Crear cliente
+                    <div class="field">
+                        <label class="field-label">Nombre del cónyuge</label>
+                        <input class="field-input" name="spouse_full_name" value="{{ old('spouse_full_name') }}" maxlength="150" placeholder="(opcional)">
+                    </div>
+
+                    <div class="grid-3">
+                        <div class="field">
+                            <label class="field-label">Fecha nacimiento</label>
+                            <input class="field-input" type="date" name="birth_date" value="{{ old('birth_date') }}" max="{{ date('Y-m-d', strtotime('-18 years')) }}">
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Ocupación</label>
+                            <input class="field-input" name="occupation" value="{{ old('occupation') }}" maxlength="100" placeholder="Empleado...">
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Ingreso mensual</label>
+                            <input class="field-input" type="number" name="monthly_income" value="{{ old('monthly_income') }}" min="0" step="100" placeholder="$0.00">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        Datos del AVAL (obligatorio)
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label field-required">Nombre completo del aval</label>
+                        <input class="field-input" name="guarantor_full_name" value="{{ old('guarantor_full_name') }}" maxlength="150" required placeholder="Nombre del garante">
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label field-required">Dirección del aval</label>
+                        <input class="field-input" name="guarantor_address" value="{{ old('guarantor_address') }}" maxlength="255" required placeholder="Dirección del garante">
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="field">
+                            <label class="field-label field-required">Teléfono del aval</label>
+                            <input class="field-input digits-only" name="guarantor_phone" value="{{ old('guarantor_phone') }}"
+                                   placeholder="4429876543" maxlength="10" inputmode="numeric" required>
+                        </div>
+                        <div class="field">
+                            <label class="field-label field-required">Estado civil del aval</label>
+                            <select class="field-input field-select" name="guarantor_marital_status" required>
+                                <option value="">— Seleccionar —</option>
+                                @foreach($maritalOptions as $op)
+                                    <option value="{{ $op }}" @selected(old('guarantor_marital_status') === $op)>{{ $op }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem;">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Registrar cliente
                     </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
-    <div class="col-12 col-lg-7">
-        <div class="surfacex surfacex-pad">
-            <h2 class="section-title">Lista de clientes</h2>
-            <p class="help">Asignación + estatus de pagos.</p>
+    {{-- ══════ TABLA ══════ --}}
+    <div class="col-12 col-xl-8">
+        <div class="card" style="overflow:hidden;">
 
-            <div class="table-wrap" style="margin-top:.85rem;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:70px;">ID</th>
-                            <th style="width:110px;">Número</th>
-                            <th>Nombre</th>
-                            <th style="width:130px;">Teléfono</th>
-                            <th style="width:150px;">Asignado a</th>
-                            <th style="width:150px;">Estatus</th>
-                            <th style="width:160px;">Próximo pago</th>
-                            <th style="width:270px;">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($clients as $c)
-                            @php
-                                $cid = $c['id'] ?? null;
-                                $assigned = $c['assigned_username'] ?? null;
-                                $loanStatus = $c['loan_status'] ?? null;
-                                $overdue = (int)($c['overdue_count'] ?? 0);
-                                $nextDue = $c['next_due_date'] ?? null;
+            {{-- Search --}}
+            <div class="search-bar">
+                <div class="input-wrap" style="flex:1;min-width:220px;">
+                    <span class="input-icon">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </span>
+                    <input class="field-input" id="clientSearch"
+                           type="text" placeholder="Buscar por nombre o número...">
+                </div>
+                <span style="font-size:.84rem;color:var(--muted);">{{ count($clients) }} cliente(s)</span>
+            </div>
 
-                                $badgeClass = 'b-none';
-                                $label = 'SIN PRESTAMO';
-
-                                if ($loanStatus === 'AL_CORRIENTE') {
-                                    $badgeClass = 'b-ok';
-                                    $label = 'AL CORRIENTE';
-                                }
-
-                                if ($loanStatus === 'ATRASADO') {
-                                    $badgeClass = 'b-bad';
-                                    $label = 'ATRASADO';
-                                }
-                            @endphp
-
+            {{-- Tabla --}}
+            <div class="card-body-flush">
+                <div class="table-wrap">
+                    <table class="tbl" id="clientsTable">
+                        <thead>
                             <tr>
-                                <td class="mono">{{ $cid ?? '—' }}</td>
-                                <td class="fw-semibold">{{ $c['client_number'] ?? '—' }}</td>
-                                <td>{{ $c['full_name'] ?? '—' }}</td>
-                                <td class="text-nowrap">{{ $c['phone'] ?? '—' }}</td>
+                                <th>N° Cliente</th>
+                                <th>Nombre</th>
+                                <th>Teléfono</th>
+                                <th>Cobrador</th>
+                                <th>Estado préstamo</th>
+                                <th>Próximo pago</th>
+                                <th style="min-width:180px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($clients as $c)
+                                @php
+                                    $cid     = $c['id'] ?? null;
+                                    $assigned= $c['assigned_username'] ?? null;
+                                    $loanSt  = $c['loan_status'] ?? null;
+                                    $overdue = (int)($c['overdue_count'] ?? 0);
+                                    $nextDue = $c['next_due_date'] ?? null;
 
-                                <td>
-                                    @if($assigned)
-                                        <strong>{{ $assigned }}</strong>
-                                    @else
-                                        <span class="muted">No asignado</span>
-                                    @endif
-                                </td>
-
-                                <td>
-                                    <span class="badgex {{ $badgeClass }}">
-                                        {{ $label }}
-                                        @if($loanStatus === 'ATRASADO')
-                                            <span class="mono">({{ $overdue }})</span>
+                                    if($loanSt === 'AL_CORRIENTE'){
+                                        $rowCls = 'row-paid'; $bCls = 'badge-teal'; $bLbl = 'Al corriente';
+                                    } elseif($loanSt === 'ATRASADO'){
+                                        $rowCls = 'row-late'; $bCls = 'badge-red'; $bLbl = 'Atrasado ('.$overdue.')';
+                                    } else {
+                                        $rowCls = ''; $bCls = 'badge-gray'; $bLbl = 'Sin préstamo';
+                                    }
+                                @endphp
+                                <tr class="{{ $rowCls }}"
+                                    data-name="{{ strtolower(($c['full_name']??'').' '.($c['client_number']??'')) }}">
+                                    <td>
+                                        <span class="client-num">{{ $c['client_number'] ?? '—' }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="client-name">{{ $c['full_name'] ?? '—' }}</div>
+                                        @if(!empty($c['occupation']))
+                                            <div class="client-sub">{{ $c['occupation'] }}</div>
                                         @endif
-                                    </span>
-                                </td>
-
-                                <td class="mono">
-                                    {{ $nextDue ? $nextDue : '—' }}
-                                </td>
-
-                                <td>
-                                    @if(!$cid)
-                                        <span class="muted">Sin ID</span>
-                                    @else
-                                        <form method="POST" action="{{ route('clients.assign', ['clientId' => $cid]) }}" class="assign-row">
-                                            @csrf
-
-                                            <select name="user_id" class="field-input" required>
-                                                <option value="">Selecciona cobrador</option>
-                                                @foreach($collectors as $u)
-                                                    <option value="{{ $u['id'] }}">
-                                                        {{ $u['username'] }} (ID {{ $u['id'] }})
-                                                    </option>
-                                                @endforeach
-                                            </select>
-
-                                            <button class="btnx btnx-soft" type="submit">
-                                                Asignar
-                                            </button>
-                                        </form>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" class="text-center py-4 muted">Sin clientes</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                                    </td>
+                                    <td class="mono cell-muted">{{ $c['phone'] ?? '—' }}</td>
+                                    <td>
+                                        @if($assigned)
+                                            <span class="badge badge-blue">{{ $assigned }}</span>
+                                        @else
+                                            <span class="cell-muted" style="font-size:.85rem;">Sin asignar</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ $bCls }}">{{ $bLbl }}</span>
+                                    </td>
+                                    <td class="mono cell-muted" style="font-size:.82rem;">
+                                        {{ $nextDue ?? '—' }}
+                                    </td>
+                                    <td>
+                                        @if($cid)
+                                        <div style="display:flex;flex-direction:column;gap:.4rem;">
+                                            {{-- Asignar --}}
+                                            <form method="POST" action="{{ route('clients.assign', ['clientId'=>$cid]) }}">
+                                                @csrf
+                                                <div class="assign-inline">
+                                                    <select name="user_id" required>
+                                                        <option value="">Cobrador...</option>
+                                                        @foreach($collectors as $u)
+                                                            <option value="{{ $u['id'] }}">{{ $u['username'] }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <button class="btn btn-ghost btn-sm" type="submit">Asignar</button>
+                                                </div>
+                                            </form>
+                                            {{-- Nuevo préstamo --}}
+                                            <a href="{{ route('loans.create', ['client_id'=>$cid]) }}"
+                                               class="btn btn-primary btn-sm" style="width:fit-content;">
+                                                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+                                                </svg>
+                                                Préstamo
+                                            </a>
+                                        </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" style="text-align:center;padding:3rem;color:var(--muted);">
+                                        <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto .75rem;opacity:.35;">
+                                            <path stroke-linecap="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/>
+                                        </svg>
+                                        No hay clientes registrados aún.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+// Solo dígitos
+document.querySelectorAll('.digits-only').forEach(function(el){
+    el.addEventListener('input', function(){ this.value = this.value.replace(/\D/g,'').slice(0,10); });
+});
+// Búsqueda
+var si = document.getElementById('clientSearch');
+var rows = document.querySelectorAll('#clientsTable tbody tr[data-name]');
+if(si){
+    si.addEventListener('input', function(){
+        var q = this.value.toLowerCase().trim();
+        rows.forEach(function(row){
+            row.style.display = (!q || row.getAttribute('data-name').includes(q)) ? '' : 'none';
+        });
+    });
+}
+</script>
+@endpush

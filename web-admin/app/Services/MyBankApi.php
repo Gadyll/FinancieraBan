@@ -24,16 +24,27 @@ class MyBankApi
     private function ok($response): array
     {
         if ($response->failed()) {
-            return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
+            return [
+                'ok' => false,
+                'status' => $response->status(),
+                'data' => $response->json(),
+            ];
         }
-        return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
+
+        return [
+            'ok' => true,
+            'status' => $response->status(),
+            'data' => $response->json(),
+        ];
     }
 
     public function jwtExp(string $jwt): ?int
     {
         try {
             $parts = explode('.', $jwt);
-            if (count($parts) < 2) return null;
+            if (count($parts) < 2) {
+                return null;
+            }
 
             $payload = $parts[1];
             $payload = strtr($payload, '-_', '+/');
@@ -42,7 +53,9 @@ class MyBankApi
             $json = base64_decode($payload);
             $data = json_decode($json, true);
 
-            if (!is_array($data) || !isset($data['exp'])) return null;
+            if (!is_array($data) || !isset($data['exp'])) {
+                return null;
+            }
 
             return (int) $data['exp'];
         } catch (\Throwable $e) {
@@ -148,11 +161,7 @@ class MyBankApi
             ->timeout(15)
             ->post($this->baseUrl . '/users', $payload);
 
-        if ($response->failed()) {
-            return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
-        }
-
-        return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
+        return $this->ok($response);
     }
 
     public function deleteUser(string $accessToken, int $userId): array
@@ -162,11 +171,7 @@ class MyBankApi
             ->timeout(15)
             ->delete($this->baseUrl . "/users/{$userId}");
 
-        if ($response->failed()) {
-            return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
-        }
-
-        return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
+        return $this->ok($response);
     }
 
     public function toggleUserActive(string $accessToken, int $userId): array
@@ -176,11 +181,7 @@ class MyBankApi
             ->timeout(15)
             ->patch($this->baseUrl . "/users/{$userId}/toggle-active");
 
-        if ($response->failed()) {
-            return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
-        }
-
-        return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
+        return $this->ok($response);
     }
 
     public function resetUserPassword(string $accessToken, int $userId): array
@@ -190,11 +191,7 @@ class MyBankApi
             ->timeout(15)
             ->post($this->baseUrl . "/users/{$userId}/reset-password");
 
-        if ($response->failed()) {
-            return ['ok' => false, 'status' => $response->status(), 'data' => $response->json()];
-        }
-
-        return ['ok' => true, 'status' => $response->status(), 'data' => $response->json()];
+        return $this->ok($response);
     }
 
     // =========================
@@ -235,13 +232,12 @@ class MyBankApi
     }
 
     /**
-     * ✅ COMPAT:
-     * - Backend viejo: POST /clients/{client_id}/assign/{user_id}
-     * - Backend nuevo: POST /clients/{client_id}/assign  body {user_id}
+     * Compatibilidad:
+     * - Nuevo: POST /clients/{client_id}/assign   body { user_id }
+     * - Viejo: POST /clients/{client_id}/assign/{user_id}
      */
     public function assignClient(string $accessToken, int $clientId, int $userId): array
     {
-        // 1) Intento versión "nueva" (body)
         $response = Http::acceptJson()
             ->timeout(15)
             ->withToken($accessToken)
@@ -253,8 +249,7 @@ class MyBankApi
             return $this->ok($response);
         }
 
-        // 2) Fallback versión "vieja" (path param)
-        if (in_array($response->status(), [404, 405])) {
+        if (in_array($response->status(), [404, 405], true)) {
             $fallback = Http::acceptJson()
                 ->timeout(15)
                 ->withToken($accessToken)
@@ -266,7 +261,9 @@ class MyBankApi
         return $this->ok($response);
     }
 
-    // ====== PREPARADOS PARA SIGUIENTE PASO (HISTORIAL) ======
+    // =========================
+    // CLIENT HISTORY / DASHBOARD
+    // =========================
 
     public function clientLoans(string $accessToken, int $clientId): array
     {
@@ -294,6 +291,111 @@ class MyBankApi
             ->timeout(15)
             ->withToken($accessToken)
             ->get($this->baseUrl . "/loans/{$loanId}/summary");
+
+        return $this->ok($response);
+    }
+
+    // =========================
+    // LOANS
+    // =========================
+
+    public function createLoan(string $accessToken, array $payload): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->post($this->baseUrl . '/loans', $payload);
+
+        return $this->ok($response);
+    }
+
+    public function listLoans(string $accessToken, int $skip = 0, int $limit = 100): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . '/loans', ['skip' => $skip, 'limit' => $limit]);
+
+        return $this->ok($response);
+    }
+
+    public function getLoan(string $accessToken, int $loanId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . "/loans/{$loanId}");
+
+        return $this->ok($response);
+    }
+
+    public function getLoanSchedule(string $accessToken, int $loanId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . "/loans/{$loanId}/schedule");
+
+        return $this->ok($response);
+    }
+
+    // =========================
+    // PAYMENTS
+    // =========================
+
+    public function createPayment(string $accessToken, array $payload): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->post($this->baseUrl . '/payments', $payload);
+
+        return $this->ok($response);
+    }
+
+    public function listPaymentsByLoan(string $accessToken, int $loanId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . "/payments/by-loan/{$loanId}");
+
+        return $this->ok($response);
+    }
+
+    public function listPaymentsByClient(string $accessToken, int $clientId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . "/payments/by-client/{$clientId}");
+
+        return $this->ok($response);
+    }
+
+    // =========================
+    // RECARGOS POR MORA
+    // =========================
+
+    public function createSurcharge(string $accessToken, int $loanId, float $amount, ?string $reason = null): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->post($this->baseUrl . "/loans/{$loanId}/surcharge", [
+                'amount' => $amount,
+                'reason' => $reason,
+            ]);
+
+        return $this->ok($response);
+    }
+
+    public function listSurcharges(string $accessToken, int $loanId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . "/loans/{$loanId}/surcharges");
 
         return $this->ok($response);
     }

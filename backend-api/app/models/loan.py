@@ -11,15 +11,15 @@ from app.database.base import Base
 
 
 class LoanFrequency(str, Enum):
-    WEEKLY = "WEEKLY"       # Semanal
-    BIWEEKLY = "BIWEEKLY"   # Quincenal
-    MONTHLY = "MONTHLY"     # Mensual
+    WEEKLY   = "WEEKLY"     # Semanal
+    BIWEEKLY = "BIWEEKLY"  # Quincenal
+    MONTHLY  = "MONTHLY"   # Mensual
 
 
 class LoanStatus(str, Enum):
-    ACTIVE = "ACTIVE"
-    PAID = "PAID"
-    LATE = "LATE"
+    ACTIVE   = "ACTIVE"
+    PAID     = "PAID"
+    LATE     = "LATE"
     CANCELED = "CANCELED"
 
 
@@ -39,8 +39,12 @@ class Loan(Base):
 
     principal_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
-    # ✅ 4 decimales (ej: 12.3456)
+    # Tasa de interés con 4 decimales (ej: 20.0000 = 20%)
     interest_rate: Mapped[Decimal] = mapped_column(Numeric(9, 4), nullable=False, default=Decimal("0.0000"))
+
+    # ✅ IVA: tasa y monto calculado sobre el interés
+    iva_rate: Mapped[Decimal] = mapped_column(Numeric(9, 4), nullable=False, default=Decimal("16.0000"))
+    iva_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
 
     total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
@@ -64,5 +68,5 @@ class Loan(Base):
     def __repr__(self) -> str:
         return (
             f"<Loan id={self.id} client_id={self.client_id} cycle={self.cycle_number} "
-            f"total={self.total_amount} status={self.status}>"
+            f"total={self.total_amount} iva={self.iva_amount} status={self.status}>"
         )

@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.models.loan import Loan
+from app.models.loan import Loan, LoanStatus
 from app.models.loan_schedule import LoanSchedule
 
 
@@ -17,13 +17,37 @@ def _rate(v: Decimal) -> Decimal:
     return v.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
 
-def calculate_total(principal: Decimal, interest_rate: Decimal) -> Decimal:
-    # interest_rate es porcentaje (ej 20.0000)
-    total = principal + (principal * (_rate(interest_rate) / Decimal("100")))
-    return _money(total)
+def calculate_interest(principal: Decimal, interest_rate: Decimal) -> Decimal:
+    """Monto del interés = principal * (rate/100)."""
+    return _money(principal * (_rate(interest_rate) / Decimal("100")))
+
+
+def calculate_iva(interest_amount: Decimal, iva_rate: Decimal) -> Decimal:
+    """IVA se calcula sobre el INTERÉS, no sobre el capital."""
+    return _money(interest_amount * (_rate(iva_rate) / Decimal("100")))
+
+
+def calculate_total(
+    principal: Decimal,
+    interest_rate: Decimal,
+    iva_rate: Decimal = Decimal("16.0000"),
+) -> tuple[Decimal, Decimal, Decimal]:
+    """
+    Retorna (total_amount, interest_amount, iva_amount).
+
+    Fórmula financiera:
+        interest = principal * (interest_rate/100)
+        iva      = interest * (iva_rate/100)          ← IVA s/interés
+        total    = principal + interest + iva
+    """
+    interest = calculate_interest(principal, interest_rate)
+    iva = calculate_iva(interest, iva_rate)
+    total = _money(principal + interest + iva)
+    return total, interest, iva
 
 
 def calculate_payment_amount(total: Decimal, payments_count: int) -> Decimal:
+    """Pago por cuota = total / payments_count (2 decimales)."""
     return _money(total / Decimal(payments_count))
 
 
@@ -42,6 +66,10 @@ def generate_schedule_rows(
     payments_count: int,
     total_amount: Decimal,
 ) -> list[LoanSchedule]:
+    """
+    Genera el calendario completo.
+    Ajusta la ÚLTIMA cuota si hay diferencia por redondeo.
+    """
     payment_amount = calculate_payment_amount(total_amount, payments_count)
     rows: list[LoanSchedule] = []
     acumulado = Decimal("0.00")
@@ -51,6 +79,7 @@ def generate_schedule_rows(
 
         amount_due = payment_amount
         if n == payments_count:
+            # Última cuota absorbe diferencia de redondeo
             amount_due = _money(total_amount - acumulado)
 
         rows.append(
@@ -78,26 +107,40 @@ def create_loan_with_schedule(
     cycle_number: int | None,
     principal_amount: Decimal,
     interest_rate: Decimal,
+    iva_rate: Decimal,
     payments_count: int,
     frequency: str,
     start_date: date,
 ) -> Loan:
+    """
+    Crea el préstamo con IVA y genera el calendario en una sola transacción.
+
+    Fórmula:
+        interest = principal * (interest_rate/100)
+        iva      = interest  * (iva_rate/100)
+        total    = principal + interest + iva
+        cuota    = total / payments_count
+    """
     cycle = cycle_number or get_next_cycle_number(db, client_id)
 
-    total_amount = calculate_total(principal_amount, interest_rate)
+    total_amount, interest_amount, iva_amount = calculate_total(
+        principal_amount, interest_rate, iva_rate
+    )
     payment_amount = calculate_payment_amount(total_amount, payments_count)
 
     loan = Loan(
         client_id=client_id,
         cycle_number=cycle,
         principal_amount=_money(principal_amount),
-        interest_rate=_rate(interest_rate),   # ✅ 4 decimales
+        interest_rate=_rate(interest_rate),
+        iva_rate=_rate(iva_rate),
+        iva_amount=iva_amount,
         total_amount=total_amount,
         payment_amount=payment_amount,
         frequency=frequency,
         payments_count=payments_count,
         start_date=start_date,
-        status="ACTIVE",
+        status=LoanStatus.ACTIVE,
     )
 
     db.add(loan)

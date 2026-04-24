@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -9,9 +9,10 @@ from app.database.base import Base
 class Guarantor(Base):
     __tablename__ = "guarantors"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     client_id: Mapped[int] = mapped_column(
+        Integer,
         ForeignKey("clients.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

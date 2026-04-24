@@ -8,12 +8,13 @@ from app.models.client_assignment import ClientAssignment
 from app.models.loan import Loan
 from app.models.loan_schedule import LoanSchedule
 from app.models.user import User, UserRole
+from app.models.loan_surcharge import LoanSurcharge
 from app.schemas.loan import LoanCreate, LoanOut, ScheduleOut, LoanWithScheduleOut
+from app.schemas.surcharge import SurchargeCreate, SurchargeOut
 from app.services.loan_service import create_loan_with_schedule
 
 from datetime import date
 from sqlalchemy import func
-from app.models.loan_schedule import LoanSchedule
 from app.models.payment import Payment
 from app.schemas.loan_summary import LoanSummaryOut
 
@@ -41,8 +42,9 @@ def create_loan(
         cycle_number=data.cycle_number,
         principal_amount=data.principal_amount,
         interest_rate=data.interest_rate,
+        iva_rate=data.iva_rate,
         payments_count=data.payments_count,
-        frequency=data.frequency,  # enum compatible
+        frequency=data.frequency,
         start_date=data.start_date,
     )
     return loan
@@ -235,3 +237,68 @@ def loan_summary(
 
         overdue_count=int(overdue_count or 0),
     )
+
+
+# =========================
+# ADMIN: CREAR RECARGO POR MORA
+# =========================
+@router.post(
+    "/{loan_id}/surcharge",
+    response_model=SurchargeOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Autorizar recargo por mora (solo admin)",
+)
+def create_surcharge(
+    loan_id: int,
+    data: SurchargeCreate,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    El administrador autoriza un recargo extra por mora.
+    Solo el admin puede crearlo; el cobrador lo ve en la app y lo cobra.
+    """
+    loan = db.query(Loan).filter(Loan.id == loan_id).first()
+    if not loan:
+        raise HTTPException(status_code=404, detail="Préstamo no encontrado.")
+
+    if loan.status not in ("ACTIVE", "LATE"):
+        raise HTTPException(
+            status_code=400,
+            detail="Solo se puede agregar un recargo a préstamos activos o vencidos.",
+        )
+
+    surcharge = LoanSurcharge(
+        loan_id=loan_id,
+        authorized_by=admin.id,
+        amount=data.amount,
+        reason=data.reason,
+        status="PENDING",
+    )
+    db.add(surcharge)
+    db.commit()
+    db.refresh(surcharge)
+    return surcharge
+
+
+@router.get(
+    "/{loan_id}/surcharges",
+    response_model=list[SurchargeOut],
+    summary="Lista de recargos de un préstamo",
+)
+def list_surcharges(
+    loan_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(get_current_user),
+):
+    loan = db.query(Loan).filter(Loan.id == loan_id).first()
+    if not loan:
+        raise HTTPException(status_code=404, detail="Préstamo no encontrado.")
+
+    surcharges = (
+        db.query(LoanSurcharge)
+        .filter(LoanSurcharge.loan_id == loan_id)
+        .order_by(LoanSurcharge.created_at.asc())
+        .all()
+    )
+    return surcharges

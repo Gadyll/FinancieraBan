@@ -130,70 +130,56 @@
   }
   tr:hover td { background: rgba(26,111,207,.03); }
 
-  /* Badges PRO (solo corregimos legibilidad del texto) */
-  /* Badges PRO (solo corregimos legibilidad del texto) */
+  /* ===== BADGES corregidos ===== */
   .badge{
     display:inline-flex;
     align-items:center;
-    gap: 8px;
-    padding: 7px 12px;
-    border-radius: 999px;
-
-    /* ✅ antes tenías un background rojo fijo (#7c0c0c) que ensucia todo */
-    background: #f8fafc;                 /* base neutra (no transparente) */
-    border: 1.5px solid rgba(15,23,42,.14);
-
-    font-weight: 1000;
-    font-size: 13px;
-    letter-spacing: .02em;
-
-    /* ✅ texto SIEMPRE legible */
-    color: #0f172a;
-
-    line-height: 1;
-    white-space: nowrap;
+    gap:6px;
+    padding:5px 12px;
+    border-radius:999px;
+    font-weight:800;
+    font-size:.80rem;
+    letter-spacing:.02em;
+    line-height:1;
+    white-space:nowrap;
   }
 
   /* ROLES */
   .b-admin{
-    background: #0565e1;                 /* azul suave sólido */
-    color:#1D4ED8;                       /* azul fuerte */
-    border-color: #1a89a4;
+    background:rgba(26,111,207,.12);
+    color:#1259b0;
+    border:1.5px solid rgba(26,111,207,.25);
   }
-
   .b-user{
-    background: #110357;                 /* verde suave sólido */
-    color:#047857;                       /* verde fuerte */
-    border-color: #010380;
+    background:rgba(18,169,138,.12);
+    color:#0a7a63;
+    border:1.5px solid rgba(18,169,138,.28);
   }
 
   /* ESTADOS */
   .b-active{
-    background: #005105;                 /* verde suave sólido */
-    color:#065F46;                       /* verde oscuro */
-    border-color: #159606;
+    background:rgba(35,184,91,.12);
+    color:#155a2a;
+    border:1.5px solid rgba(35,184,91,.28);
   }
-
   .b-inactive{
-    background: #de0b0b;                 /* rojo suave sólido */
-    color:#B91C1C;                       /* rojo fuerte */
-    border-color: #ab0808;
+    background:rgba(224,58,58,.10);
+    color:#b02020;
+    border:1.5px solid rgba(224,58,58,.28);
   }
 
-  /* (Opcional) mejora contraste dentro de fila hover */
-  tr:hover .badge{
-    filter: brightness(0.98);
-  }
+  tr:hover .badge{ filter:brightness(.97); }
 
   /* Modal */
   .modalx-backdrop {
     position: fixed; inset:0;
-    background: rgba(119, 6, 6, 0.55);
+    background: rgba(13, 27, 46, 0.50);  /* ✅ gris oscuro neutro */
     display:none;
     align-items:center;
     justify-content:center;
     padding: 1rem;
     z-index: 9999;
+    backdrop-filter: blur(3px);
   }
   .modalx {
     width: min(560px, 100%);

@@ -1,10 +1,14 @@
 """
-Script para crear el usuario ADMIN inicial del sistema MYBANK
+Script para crear el usuario ADMIN inicial del sistema MYBANK.
 Se ejecuta una sola vez desde terminal.
 """
 
 import sys
 import os
+import io
+
+# Forzar UTF-8 en la salida de la terminal (Windows)
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 # Permite importar app.*
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -29,13 +33,13 @@ def create_admin():
         )
 
         if admin_exists:
-            print("⚠️  Ya existe un usuario ADMIN. No se creó otro.")
+            print("[!] Ya existe un usuario ADMIN. No se creo otro.")
             return
 
         # === DATOS DEL ADMIN ===
         username = "admin"
-        email = "admin@mybank.local"
-        password = "Admin123!"  # ⚠️ CAMBIAR DESPUÉS DEL PRIMER LOGIN
+        email    = "admin@mybank.local"
+        password = "Admin123!"   # CAMBIAR DESPUES DEL PRIMER LOGIN
 
         admin = User(
             username=username,
@@ -49,17 +53,17 @@ def create_admin():
         db.commit()
         db.refresh(admin)
 
-        print("✅ ADMIN CREADO CORRECTAMENTE")
+        print("[OK] ADMIN CREADO CORRECTAMENTE")
         print("================================")
         print(f"Usuario : {username}")
         print(f"Email   : {email}")
         print(f"Password: {password}")
         print("================================")
-        print("⚠️ CAMBIA LA CONTRASEÑA DESPUÉS DEL PRIMER LOGIN")
+        print("[!] CAMBIA LA CONTRASENA DESPUES DEL PRIMER LOGIN")
 
     except Exception as e:
         db.rollback()
-        print("❌ ERROR CREANDO ADMIN")
+        print("[ERROR] CREANDO ADMIN")
         print(str(e))
     finally:
         db.close()

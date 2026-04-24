@@ -6,9 +6,9 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class LoanFrequency(str, Enum):
-    WEEKLY = "WEEKLY"
+    WEEKLY   = "WEEKLY"
     BIWEEKLY = "BIWEEKLY"
-    MONTHLY = "MONTHLY"
+    MONTHLY  = "MONTHLY"
 
 
 class LoanCreate(BaseModel):
@@ -17,8 +17,11 @@ class LoanCreate(BaseModel):
 
     principal_amount: Decimal = Field(..., gt=0)
 
-    # ✅ interés con 4 decimales
+    # Tasa de interés con 4 decimales (ej: 20.0000 = 20%)
     interest_rate: Decimal = Field(..., ge=0, le=1000)
+
+    # ✅ IVA: por defecto 16% — se calcula sobre el interés
+    iva_rate: Decimal = Field(default=Decimal("16.0000"), ge=0, le=100)
 
     payments_count: int = Field(..., gt=0, le=520)
     frequency: LoanFrequency
@@ -29,33 +32,28 @@ class LoanCreate(BaseModel):
     def _quantize_money(cls, v: Decimal) -> Decimal:
         return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    @field_validator("interest_rate")
+    @field_validator("interest_rate", "iva_rate")
     @classmethod
     def _quantize_rate(cls, v: Decimal) -> Decimal:
         return v.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
-    # ✅ Reglas nivel banco según tu definición
     @field_validator("payments_count")
     @classmethod
     def _validate_payments_count(cls, payments_count: int, info):
         freq = info.data.get("frequency")
 
-        # Si todavía no viene frequency, no validamos aquí
         if not freq:
             return payments_count
 
         if freq == LoanFrequency.WEEKLY:
-            # 4 a 18 meses (aprox) => usamos regla simple: múltiplo de 4 entre 16 y 72
             if payments_count < 16 or payments_count > 72 or (payments_count % 4 != 0):
                 raise ValueError("SEMANAL: payments_count debe ser múltiplo de 4 entre 16 y 72 (4 a 18 meses).")
 
         elif freq == LoanFrequency.BIWEEKLY:
-            # 5 a 18 meses => 10 a 36 quincenas (múltiplo de 2)
             if payments_count < 10 or payments_count > 36 or (payments_count % 2 != 0):
                 raise ValueError("QUINCENAL: payments_count debe ser múltiplo de 2 entre 10 y 36 (5 a 18 meses).")
 
         elif freq == LoanFrequency.MONTHLY:
-            # 1 a 18 meses => 1 a 18 pagos
             if payments_count < 1 or payments_count > 18:
                 raise ValueError("MENSUAL: payments_count debe estar entre 1 y 18 (1 a 18 meses).")
 
@@ -68,6 +66,9 @@ class LoanOut(BaseModel):
     cycle_number: int
     principal_amount: Decimal
     interest_rate: Decimal
+    # ✅ IVA incluido en la respuesta
+    iva_rate: Decimal
+    iva_amount: Decimal
     total_amount: Decimal
     payment_amount: Decimal
     frequency: str

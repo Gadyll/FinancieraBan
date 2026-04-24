@@ -19,8 +19,8 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    # ✅ Folio visible (NO es el id)
-    user_number: Mapped[int] = mapped_column(Integer, unique=True, index=True, nullable=False)
+    # ✅ Folio visible (solo para cobradores, admin puede ser NULL)
+    user_number: Mapped[int | None] = mapped_column(Integer, unique=True, index=True, nullable=True)
 
     # Login
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
