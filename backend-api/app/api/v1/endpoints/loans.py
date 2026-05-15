@@ -9,6 +9,7 @@ from app.models.loan import Loan
 from app.models.loan_schedule import LoanSchedule
 from app.models.user import User, UserRole
 from app.models.loan_surcharge import LoanSurcharge
+from app.models.payment import Payment, PaymentMethod
 from app.schemas.loan import LoanCreate, LoanOut, ScheduleOut, LoanWithScheduleOut
 from app.schemas.surcharge import SurchargeCreate, SurchargeOut
 from app.services.loan_service import create_loan_with_schedule
@@ -41,11 +42,11 @@ def create_loan(
         client_id=data.client_id,
         cycle_number=data.cycle_number,
         principal_amount=data.principal_amount,
-        interest_rate=data.interest_rate,
-        iva_rate=data.iva_rate,
+        interest_amount=data.interest_amount,
         payments_count=data.payments_count,
         frequency=data.frequency,
         start_date=data.start_date,
+        payment_amount_override=data.payment_amount_override,
     )
     return loan
 
@@ -302,3 +303,60 @@ def list_surcharges(
         .all()
     )
     return surcharges
+
+
+# =========================
+# LIQUIDAR / COBRAR UN RECARGO
+# ─ NO afecta el calendario del préstamo principal
+# =========================
+@router.post(
+    "/{loan_id}/surcharges/{surcharge_id}/pay",
+    response_model=SurchargeOut,
+    summary="Liquidar un recargo por mora (no afecta el préstamo)",
+)
+def pay_surcharge(
+    loan_id: int,
+    surcharge_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Cobra / liquida un recargo por mora.
+    - Crea un Payment con schedule_id = NULL (no toca el calendario).
+    - Marca el recargo como PAID.
+    - El saldo e historial del préstamo principal permanecen intactos.
+    """
+    loan = db.query(Loan).filter(Loan.id == loan_id).first()
+    if not loan:
+        raise HTTPException(status_code=404, detail="Préstamo no encontrado.")
+
+    surcharge = (
+        db.query(LoanSurcharge)
+        .filter(LoanSurcharge.id == surcharge_id, LoanSurcharge.loan_id == loan_id)
+        .first()
+    )
+    if not surcharge:
+        raise HTTPException(status_code=404, detail="Recargo no encontrado.")
+
+    if surcharge.status == "PAID":
+        raise HTTPException(status_code=400, detail="Este recargo ya fue liquidado.")
+
+    # ── Pago aislado (schedule_id = None → no toca el calendario) ──
+    payment = Payment(
+        loan_id=loan_id,
+        schedule_id=None,          # <── CLAVE: no vincula a ninguna cuota
+        user_id=current_user.id,
+        amount_paid=surcharge.amount,
+        payment_method=PaymentMethod.CASH,
+        notes=f"Liquidación de recargo por mora. Motivo: {surcharge.reason or 'sin motivo'}",
+    )
+    db.add(payment)
+    db.flush()  # obtener payment.id sin commit
+
+    # Marcar recargo como pagado
+    surcharge.status = "PAID"
+    surcharge.payment_id = payment.id
+
+    db.commit()
+    db.refresh(surcharge)
+    return surcharge

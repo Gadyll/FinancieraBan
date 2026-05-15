@@ -39,11 +39,14 @@ class Loan(Base):
 
     principal_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
-    # Tasa de interés con 4 decimales (ej: 20.0000 = 20%)
+    # Interés pactado fijo (monto en $, NO porcentaje) — nueva lógica FinancieraBan
+    interest_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+
+    # Legacy: tasa porcentual (ya no se usa en nuevos préstamos, conservado para historial)
     interest_rate: Mapped[Decimal] = mapped_column(Numeric(9, 4), nullable=False, default=Decimal("0.0000"))
 
-    # ✅ IVA: tasa y monto calculado sobre el interés
-    iva_rate: Mapped[Decimal] = mapped_column(Numeric(9, 4), nullable=False, default=Decimal("16.0000"))
+    # IVA: conservado pero en $0 para nuevos préstamos
+    iva_rate: Mapped[Decimal] = mapped_column(Numeric(9, 4), nullable=False, default=Decimal("0.0000"))
     iva_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
 
     total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)

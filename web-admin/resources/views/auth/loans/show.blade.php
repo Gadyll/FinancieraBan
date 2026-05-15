@@ -3,7 +3,7 @@
 
 @push('styles')
 <style>
-/* ── Breakdown IVA ── */
+/* ── Desglose financiero ── */
 .breakdown {
     background: linear-gradient(135deg, rgba(26,111,207,.04), rgba(13,184,138,.04));
     border: 1.5px solid rgba(26,111,207,.15);
@@ -83,14 +83,11 @@
     $statusLbl = match($status){ 'ACTIVE'=>'Activo','PAID'=>'Pagado','LATE'=>'Vencido',default=>'Cancelado' };
     $freqLbl   = match($loan['frequency']??''){ 'WEEKLY'=>'Semanal','BIWEEKLY'=>'Quincenal','MONTHLY'=>'Mensual',default=>$loan['frequency']??'—' };
 
-    $principal = (float)($loan['principal_amount']??0);
-    $intRate   = (float)($loan['interest_rate']??0);
-    $ivaRate   = (float)($loan['iva_rate']??0);
-    $ivaAmt    = (float)($loan['iva_amount']??0);
-    $interest  = $principal * ($intRate / 100);
-    $total     = (float)($loan['total_amount']??0);
-    $cuota     = (float)($loan['payment_amount']??0);
-    $nPagos    = (int)($loan['payments_count']??0);
+    $principal   = (float)($loan['principal_amount'] ?? 0);
+    $interestAmt = (float)($loan['interest_amount']  ?? 0);
+    $total       = (float)($loan['total_amount']     ?? 0);
+    $cuota       = (float)($loan['payment_amount']   ?? 0);
+    $nPagos      = (int)($loan['payments_count']     ?? 0);
 
     $totalPaid = (float)($summary['total_paid'] ?? 0);
     $remaining = (float)($summary['remaining'] ?? max(0, $total - $totalPaid));
@@ -130,18 +127,41 @@
 
 {{-- Flash messages --}}
 @if(session('payment_ok'))
-    <div class="alert alert-success">
-        <div class="alert-icon">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    <div style="
+        background: linear-gradient(135deg,#0b9272,#0a7a60);
+        border-radius:14px; padding:1.1rem 1.25rem;
+        margin-bottom:1.1rem;
+        display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+        box-shadow: 0 6px 20px rgba(11,146,114,.30);
+        color:#fff;">
+        <div style="display:flex;align-items:center;gap:.75rem;">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);
+                        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-weight:800;font-size:.95rem;">¡Pago registrado con éxito!</div>
+                <div style="font-size:.83rem;opacity:.85;">{{ session('payment_ok') }}</div>
+            </div>
+        </div>
+        <a href="{{ route('loans.ticket', ['loanId'=>$loanId]) }}?autoprint=1"
+           target="_blank"
+           style="display:inline-flex;align-items:center;gap:.5rem;
+                  background:#fff;color:#0b9272;
+                  padding:.65rem 1.25rem;border-radius:10px;
+                  font-weight:800;font-size:.88rem;text-decoration:none;
+                  box-shadow:0 3px 10px rgba(0,0,0,.15);white-space:nowrap;
+                  transition:.15s;"
+           onmouseover="this.style.background='#f0fdf9'"
+           onmouseout="this.style.background='#fff'">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                <path stroke-linecap="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8" rx="1"/>
             </svg>
-        </div>
-        <div>
-            {{ session('payment_ok') }}
-            @if(session('ticket_pdf'))
-                — <a href="{{ session('ticket_pdf') }}" target="_blank" style="font-weight:800;">Descargar ticket PDF ↗</a>
-            @endif
-        </div>
+            Imprimir ticket
+        </a>
     </div>
 @endif
 @if($errors->any())
@@ -178,7 +198,7 @@
         <div style="width:{{ $paid_pct }}%;height:100%;background:linear-gradient(90deg,var(--teal),var(--blue));border-radius:999px;transition:width .5s;"></div>
     </div>
 
-    {{-- Desglose IVA --}}
+    {{-- Desglose financiero --}}
     <div class="breakdown mb-3">
         <div style="font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.6rem;">
             Desglose financiero
@@ -188,15 +208,11 @@
             <span class="bk-val">${{ number_format($principal,2) }}</span>
         </div>
         <div class="bk-row">
-            <span class="bk-label">📈 Interés ({{ $intRate }}%)</span>
-            <span class="bk-val" style="color:var(--blue);">+ ${{ number_format($interest,2) }}</span>
-        </div>
-        <div class="bk-row">
-            <span class="bk-label">🧾 IVA s/interés ({{ $ivaRate }}%)</span>
-            <span class="bk-val" style="color:var(--purple);">+ ${{ number_format($ivaAmt,2) }}</span>
+            <span class="bk-label">📈 Interés pactado</span>
+            <span class="bk-val" style="color:var(--blue);">+ ${{ number_format($interestAmt,2) }}</span>
         </div>
         <div class="bk-row total">
-            <span class="bk-label">TOTAL A PAGAR</span>
+            <span class="bk-label">TOTAL PROGRAMADO</span>
             <span class="bk-val">${{ number_format($total,2) }}</span>
         </div>
     </div>
@@ -241,16 +257,19 @@
                     <table class="tbl">
                         <thead>
                             <tr>
+                                <th style="width:36px;">#</th>
                                 <th>Ticket</th>
                                 <th class="text-right">Monto</th>
                                 <th>Método</th>
                                 <th>Cobrador</th>
                                 <th>Fecha</th>
+                                <th style="width:50px;text-align:center;">🖨️</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($payments as $pay)
+                            @foreach($payments as $idx => $pay)
                                 <tr class="row-paid">
+                                    <td class="cell-muted" style="font-size:.80rem;">{{ $idx + 1 }}</td>
                                     <td class="mono cell-muted" style="font-size:.82rem;">{{ $pay['ticket_number']??'—' }}</td>
                                     <td class="text-right">
                                         <strong style="color:var(--teal);font-size:1rem;">${{ number_format((float)($pay['amount_paid']??0),2) }}</strong>
@@ -260,6 +279,22 @@
                                     </td>
                                     <td>{{ $pay['collector_username']??'—' }}</td>
                                     <td class="mono cell-muted" style="font-size:.82rem;">{{ substr($pay['paid_at']??'',0,16) }}</td>
+                                    <td style="text-align:center;">
+                                        <a href="{{ route('loans.ticket', ['loanId'=>$loanId]) }}?payment_id={{ $pay['id']??'' }}"
+                                           target="_blank"
+                                           title="Imprimir ticket #{{ $pay['ticket_number']??'' }}"
+                                           style="display:inline-flex;align-items:center;justify-content:center;
+                                                  width:30px;height:30px;border-radius:8px;
+                                                  background:rgba(26,111,207,.08);color:var(--blue);
+                                                  text-decoration:none;transition:.15s;"
+                                           onmouseover="this.style.background='rgba(26,111,207,.18)'"
+                                           onmouseout="this.style.background='rgba(26,111,207,.08)'">
+                                            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+                                                <rect x="6" y="14" width="12" height="8" rx="1"/>
+                                            </svg>
+                                        </a>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -329,52 +364,124 @@
                 </svg>
                 Recargo por mora — Solo Admin
             </div>
-            <p style="font-size:.85rem;color:var(--text-2);margin-bottom:.85rem;">
-                Define un monto extra que el cliente debe pagar por incumplimiento.
-                El cobrador lo verá en la app y lo cobrará en el próximo pago.
-            </p>
-            <form method="POST" action="{{ route('loans.surcharge', ['loanId'=>$loanId]) }}">
-                @csrf
-                <div class="grid-2 mb-2">
-                    <div class="field">
-                        <label class="field-label field-required" style="color:var(--red);">Monto del recargo ($)</label>
-                        <input class="field-input" name="amount" type="number"
-                               min="0.01" step="0.01" placeholder="0.00" required
-                               style="border-color:rgba(220,38,38,.28);">
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Motivo</label>
-                        <input class="field-input" name="reason" type="text"
-                               maxlength="255" placeholder="Mora, penalización, etc."
-                               style="border-color:rgba(220,38,38,.18);">
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-danger btn-full" style="background:var(--red);color:#fff;border:0;">
-                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" d="M12 9v2m0 4h.01"/>
-                    </svg>
-                    Autorizar recargo
-                </button>
-            </form>
 
-            {{-- Recargos pendientes --}}
-            @php $pending = collect($surcharges ?? [])->where('status','PENDING'); @endphp
-            @if($pending->count() > 0)
-                <div style="margin-top:.85rem;border-top:1px dashed rgba(220,38,38,.20);padding-top:.75rem;">
-                    <div style="font-size:.76rem;font-weight:800;text-transform:uppercase;color:var(--red);letter-spacing:.07em;margin-bottom:.5rem;">
-                        ⚠ Recargos pendientes de cobro
-                    </div>
-                    @foreach($pending as $sc)
-                        <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem .6rem;background:rgba(220,38,38,.06);border-radius:8px;border:1px solid rgba(220,38,38,.15);margin-bottom:.3rem;">
-                            <div>
-                                <strong style="color:var(--red);">${{ number_format((float)$sc['amount'],2) }}</strong>
-                                <span style="font-size:.82rem;color:var(--text-2);margin-left:.4rem;">{{ $sc['reason'] ?? 'Sin motivo' }}</span>
+            @if($errors->has('surcharge_pay'))
+                <div class="alert alert-danger" style="margin-bottom:.75rem;font-size:.85rem;">
+                    {{ $errors->first('surcharge_pay') }}
+                </div>
+            @endif
+
+            {{-- Recargos existentes (pendientes + liquidados) --}}
+            @php
+                $allSurcharges = collect($surcharges ?? []);
+                $pendingSc = $allSurcharges->where('status','PENDING');
+                $paidSc    = $allSurcharges->where('status','PAID');
+            @endphp
+
+            @if($allSurcharges->count() > 0)
+                <div style="margin-bottom:.85rem;">
+                    @foreach($allSurcharges as $sc)
+                        @php $isPending = $sc['status'] === 'PENDING'; @endphp
+                        <div style="
+                            display:flex; justify-content:space-between; align-items:center;
+                            flex-wrap:wrap; gap:.5rem;
+                            padding:.6rem .75rem;
+                            background:{{ $isPending ? 'rgba(220,38,38,.06)' : 'rgba(11,146,114,.05)' }};
+                            border-radius:10px;
+                            border:1px solid {{ $isPending ? 'rgba(220,38,38,.20)' : 'rgba(11,146,114,.18)' }};
+                            margin-bottom:.4rem;">
+
+                            {{-- Datos del recargo --}}
+                            <div style="flex:1;min-width:0;">
+                                <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                                    <strong style="color:{{ $isPending ? 'var(--red)' : '#0b9272' }};font-size:.95rem;">
+                                        ${{ number_format((float)$sc['amount'],2) }}
+                                    </strong>
+                                    <span class="badge {{ $isPending ? 'badge-orange' : 'badge-teal' }}" style="font-size:.72rem;">
+                                        {{ $isPending ? 'Pendiente' : '✓ Liquidado' }}
+                                    </span>
+                                </div>
+                                @if(!empty($sc['reason']))
+                                    <div style="font-size:.80rem;color:var(--text-2);margin-top:.15rem;">
+                                        {{ $sc['reason'] }}
+                                    </div>
+                                @endif
+                                <div style="font-size:.75rem;color:var(--muted);margin-top:.1rem;">
+                                    Autorizado: {{ \Carbon\Carbon::parse($sc['created_at'])->format('d/m/Y H:i') }}
+                                </div>
                             </div>
-                            <span class="badge badge-orange">Pendiente</span>
+
+                            {{-- Botón Liquidar (solo si está pendiente) --}}
+                            @if($isPending)
+                                <form method="POST"
+                                      action="{{ route('loans.surcharge.pay', ['loanId'=>$loanId,'surchargeId'=>$sc['id']]) }}"
+                                      onsubmit="return confirm('¿Confirmas liquidar este recargo de ${{ number_format((float)$sc['amount'],2) }}?\n\nEsto NO modifica el préstamo principal.')">
+                                    @csrf
+                                    <button type="submit"
+                                            style="display:inline-flex;align-items:center;gap:.4rem;
+                                                   padding:.5rem 1rem;border-radius:8px;border:0;cursor:pointer;
+                                                   background:#0b9272;color:#fff;
+                                                   font-family:'Outfit',sans-serif;font-weight:800;font-size:.83rem;
+                                                   box-shadow:0 3px 10px rgba(11,146,114,.30);
+                                                   transition:.15s;"
+                                            onmouseover="this.style.background='#0a7a60'"
+                                            onmouseout="this.style.background='#0b9272'">
+                                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Liquidar
+                                    </button>
+                                </form>
+                            @else
+                                <div style="font-size:.78rem;color:#0b9272;font-weight:700;">
+                                    ✓ Cobrado
+                                </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
             @endif
+
+            {{-- Formulario para nuevo recargo --}}
+            <div style="border-top:1px dashed rgba(220,38,38,.20);padding-top:.85rem;margin-top:.5rem;">
+                <div style="font-size:.76rem;font-weight:800;text-transform:uppercase;
+                            color:var(--red);letter-spacing:.07em;margin-bottom:.6rem;">
+                    + Autorizar nuevo recargo
+                </div>
+                <p style="font-size:.83rem;color:var(--text-2);margin-bottom:.75rem;">
+                    Define el monto extra. El cobrador podrá liquidarlo sin afectar el préstamo.
+                </p>
+                @if($errors->has('surcharge'))
+                    <div style="font-size:.82rem;color:var(--red);margin-bottom:.6rem;">
+                        {{ $errors->first('surcharge') }}
+                    </div>
+                @endif
+                <form method="POST" action="{{ route('loans.surcharge', ['loanId'=>$loanId]) }}">
+                    @csrf
+                    <div class="grid-2 mb-2">
+                        <div class="field">
+                            <label class="field-label field-required" style="color:var(--red);">Monto ($)</label>
+                            <input class="field-input" name="amount" type="number"
+                                   min="0.01" step="0.01" placeholder="0.00" required
+                                   style="border-color:rgba(220,38,38,.28);">
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Motivo</label>
+                            <input class="field-input" name="reason" type="text"
+                                   maxlength="255" placeholder="Mora, penalización..."
+                                   style="border-color:rgba(220,38,38,.18);">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-full"
+                            style="background:var(--red);color:#fff;border:0;border-radius:10px;
+                                   padding:.65rem;font-weight:800;cursor:pointer;">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle;margin-right:.3rem;">
+                            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Autorizar recargo
+                    </button>
+                </form>
+            </div>
         </div>
     @endif
 
@@ -389,24 +496,51 @@
                 Calendario de pagos
                 <span class="badge badge-purple" style="margin-left:.35rem;">{{ count($schedule) }}</span>
             </h2>
+            <div style="font-size:.77rem;color:rgba(255,255,255,.65);font-weight:500;">
+                Días hábiles Lun–Vie · El gestor puede autorizar Sáb/Dom
+            </div>
         </div>
         <div class="card-body" style="padding:.75rem;">
             <div class="timeline-scroll">
+                @php
+                    $dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+                @endphp
                 @forelse($schedule as $s)
                     @php
                         $sStatus  = $s['status'] ?? 'PENDING';
                         $dotClass = match($sStatus){ 'PAID'=>'tl-paid','PARTIAL'=>'tl-partial','LATE'=>'tl-late',default=>'tl-pending' };
                         $badgeCls = match($sStatus){ 'PAID'=>'badge-teal','PARTIAL'=>'badge-orange','LATE'=>'badge-red',default=>'badge-blue' };
                         $badgeLbl = match($sStatus){ 'PAID'=>'✓ Pagada','PARTIAL'=>'~ Parcial','LATE'=>'⚠ Vencida',default=>'Pendiente' };
+                        $dueObj   = !empty($s['due_date']) ? \Carbon\Carbon::parse($s['due_date']) : null;
+                        $diaNom   = $dueObj ? $dias[$dueObj->dayOfWeek] : '';
+                        $isWeekend= $dueObj && in_array($dueObj->dayOfWeek, [0,6]);
+                        $dueFmt   = $dueObj ? $dueObj->format('d/m/Y') : '—';
                     @endphp
-                    <div class="tl-item">
+                    <div class="tl-item" style="{{ $sStatus==='PAID' ? 'opacity:.7;' : '' }}">
                         <div class="tl-dot {{ $dotClass }}">{{ $s['installment_number'] }}</div>
                         <div>
-                            <div class="tl-num">Cuota {{ $s['installment_number'] }}</div>
-                            <div class="tl-date">{{ $s['due_date']??'—' }}</div>
-                            <span class="badge {{ $badgeCls }}" style="font-size:.72rem;padding:2px 8px;margin-top:.2rem;">{{ $badgeLbl }}</span>
+                            <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
+                                <span style="font-weight:700;font-size:.88rem;">
+                                    Pago {{ $s['installment_number'] }} de {{ $loan['payments_count'] }}
+                                </span>
+                                @if($isWeekend)
+                                    <span style="font-size:.70rem;background:rgba(245,138,0,.12);color:#b85e00;border:1px solid rgba(245,138,0,.25);border-radius:999px;padding:1px 6px;font-weight:700;">{{ $diaNom }} ⚠</span>
+                                @endif
+                            </div>
+                            <div style="font-size:.82rem;color:var(--muted);margin-top:.05rem;">
+                                <strong style="color:{{ $isWeekend ? '#b85e00' : 'var(--text-2)' }};">{{ $diaNom }}</strong>
+                                {{ $dueFmt }}
+                            </div>
+                            <span class="badge {{ $badgeCls }}" style="font-size:.70rem;padding:2px 8px;margin-top:.2rem;">{{ $badgeLbl }}</span>
                         </div>
-                        <div class="tl-amount">${{ number_format((float)($s['amount_due']??0),2) }}</div>
+                        <div style="text-align:right;">
+                            <div class="tl-amount">${{ number_format((float)($s['amount_due']??0),2) }}</div>
+                            @if($sStatus==='PAID' && !empty($s['paid_at']))
+                                <div style="font-size:.72rem;color:var(--muted);">
+                                    {{ \Carbon\Carbon::parse($s['paid_at'])->setTimezone(config('app.timezone'))->format('d/m H:i') }}
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 @empty
                     <p style="text-align:center;color:var(--muted);padding:.75rem 0;">Sin calendario generado.</p>

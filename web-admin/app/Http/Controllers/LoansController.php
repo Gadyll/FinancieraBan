@@ -80,33 +80,37 @@ class LoansController extends Controller
         }
 
         $data = $request->validate([
-            'client_id'      => ['required', 'integer', 'min:1'],
-            'principal_amount'=> ['required', 'numeric', 'min:1'],
-            'interest_rate'  => ['required', 'numeric', 'min:0', 'max:1000'],
-            'iva_rate'        => ['required', 'numeric', 'min:0', 'max:100'],
-            'payments_count' => ['required', 'integer', 'min:1', 'max:520'],
-            'frequency'      => ['required', 'in:WEEKLY,BIWEEKLY,MONTHLY'],
-            'start_date'     => ['required', 'date', 'after_or_equal:today'],
+            'client_id'               => ['required', 'integer', 'min:1'],
+            'principal_amount'        => ['required', 'numeric', 'min:1'],
+            'interest_amount'         => ['required', 'numeric', 'min:0'],
+            'payment_amount_override' => ['nullable', 'numeric', 'min:0'],
+            'payments_count'          => ['required', 'integer', 'min:4', 'max:104'],
+            'frequency'               => ['required', 'in:WEEKLY,BIWEEKLY,MONTHLY'],
+            'start_date'              => ['required', 'date'],
         ], [
-            'client_id.required'       => 'Selecciona un cliente.',
-            'principal_amount.required'=> 'El monto del préstamo es obligatorio.',
-            'principal_amount.min'     => 'El monto debe ser mayor a $0.',
-            'interest_rate.required'   => 'La tasa de interés es obligatoria.',
-            'payments_count.required'  => 'El número de pagos es obligatorio.',
-            'frequency.required'       => 'La frecuencia de pago es obligatoria.',
-            'start_date.required'      => 'La fecha de inicio es obligatoria.',
-            'start_date.after_or_equal'=> 'La fecha de inicio debe ser hoy o posterior.',
+            'client_id.required'        => 'Selecciona un cliente.',
+            'principal_amount.required' => 'El capital prestado es obligatorio.',
+            'principal_amount.min'      => 'El capital debe ser mayor a $0.',
+            'interest_amount.required'  => 'El monto de interés pactado es obligatorio.',
+            'payments_count.required'   => 'El número de pagos es obligatorio.',
+            'payments_count.min'        => 'El mínimo es 4 pagos (4 meses mensual / 16 semanas).',
+            'frequency.required'        => 'La frecuencia de pago es obligatoria.',
+            'start_date.required'       => 'La fecha de entrega del dinero es obligatoria.',
         ]);
 
         $payload = [
-            'client_id'       => (int)$data['client_id'],
-            'principal_amount' => (float)$data['principal_amount'],
-            'interest_rate'   => (float)$data['interest_rate'],
-            'iva_rate'        => (float)$data['iva_rate'],
-            'payments_count'  => (int)$data['payments_count'],
-            'frequency'       => $data['frequency'],
-            'start_date'      => $data['start_date'],
+            'client_id'               => (int)$data['client_id'],
+            'principal_amount'        => (float)$data['principal_amount'],
+            'interest_amount'         => (float)$data['interest_amount'],
+            'payments_count'          => (int)$data['payments_count'],
+            'frequency'               => $data['frequency'],
+            'start_date'              => $data['start_date'],
         ];
+
+        // Cuota manual solo si fue ingresada y es > 0
+        if (!empty($data['payment_amount_override']) && (float)$data['payment_amount_override'] > 0) {
+            $payload['payment_amount_override'] = (float)$data['payment_amount_override'];
+        }
 
         $res = $api->createLoan($accessToken, $payload);
 
@@ -181,6 +185,28 @@ class LoansController extends Controller
     }
 
     // ─────────────────────────────────────────
+    // POST /loans/{loanId}/surcharges/{surchargeId}/pay  → liquidar recargo
+    // ─────────────────────────────────────────
+    public function paySurcharge(int $loanId, int $surchargeId, Request $request, MyBankApi $api)
+    {
+        $accessToken = session('mybank_access_token');
+        if (!$accessToken) {
+            return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
+        }
+
+        $res = $api->paySurcharge($accessToken, $loanId, $surchargeId);
+
+        if (!$res['ok']) {
+            $msg = $res['data']['detail'] ?? json_encode($res['data']);
+            return back()->withErrors(['surcharge_pay' => "No se pudo liquidar el recargo: {$msg}"]);
+        }
+
+        return redirect()
+            ->route('loans.show', ['loanId' => $loanId])
+            ->with('success', '✓ Recargo liquidado. El préstamo principal no fue modificado.');
+    }
+
+    // ─────────────────────────────────────────
     // POST /loans/{loanId}/surcharge  → autorizar recargo (solo admin)
     // ─────────────────────────────────────────
     public function storeSurcharge(int $loanId, Request $request, MyBankApi $api)
@@ -231,8 +257,8 @@ class LoansController extends Controller
             'schedule_id'    => ['nullable', 'integer', 'min:1'],
             'notes'          => ['nullable', 'string', 'max:255'],
         ], [
-            'amount_paid.required' => 'El monto del pago es obligatorio.',
-            'amount_paid.min'      => 'El monto debe ser mayor a $0.',
+            'amount_paid.required'    => 'El monto del pago es obligatorio.',
+            'amount_paid.min'         => 'El monto debe ser mayor a $0.',
             'payment_method.required' => 'El método de pago es obligatorio.',
         ]);
 
@@ -251,12 +277,144 @@ class LoansController extends Controller
             return back()->withErrors(['payment' => "No se pudo registrar el pago: {$msg}"]);
         }
 
-        $ticketNumber = $res['data']['ticket']['ticket_number'] ?? '—';
-        $pdfUrl = $res['data']['ticket']['pdf_url'] ?? null;
+        $paymentData = $res['data'];
+        $ticketNumber = $paymentData['ticket']['ticket_number'] ?? '—';
+
+        // ── Obtener datos extra para el ticket de impresión ──
+        $loanRes  = $api->getLoan($accessToken, $loanId);
+        $loan     = $loanRes['ok'] ? $loanRes['data'] : [];
+
+        $summaryRes = $api->loanSummary($accessToken, $loanId);
+        $summary    = $summaryRes['ok'] ? $summaryRes['data'] : [];
+
+        $clientId  = $loan['client_id'] ?? null;
+        $clientName = '—';
+        $clientNum  = '—';
+        if ($clientId) {
+            $clientRes = $api->clientDashboard($accessToken, $clientId);
+            if ($clientRes['ok']) {
+                $cl = $clientRes['data']['client'] ?? [];
+                $clientName = $cl['full_name']     ?? '—';
+                $clientNum  = $cl['client_number'] ?? '—';
+            }
+        }
+
+        // Número de pago: contar pagos anteriores + 1
+        $paymentsRes   = $api->listPaymentsByLoan($accessToken, $loanId);
+        $paymentsCount = ($paymentsRes['ok'] && is_array($paymentsRes['data']))
+            ? count($paymentsRes['data'])
+            : 1;
+
+        // Guardar en sesión para la vista de impresión
+        session()->flash('ticket_data', [
+            'ticket_number'  => $ticketNumber,
+            'loan_id'        => $loanId,
+            'client_name'    => $clientName,
+            'client_number'  => $clientNum,
+            'amount_paid'    => (float)$data['amount_paid'],
+            'payment_method' => $data['payment_method'],
+            'payment_number' => $paymentsCount,
+            'payments_total' => $loan['payments_count'] ?? '—',
+            'total_amount'   => $loan['total_amount']   ?? 0,
+            'remaining'      => $summary['remaining_balance'] ?? 0,
+            'paid_at'        => now()->format('d/m/Y H:i'),
+            'notes'          => $data['notes'] ?? null,
+        ]);
 
         return redirect()
             ->route('loans.show', ['loanId' => $loanId])
-            ->with('payment_ok', "Pago registrado. Ticket: {$ticketNumber}")
-            ->with('ticket_pdf', $pdfUrl);
+            ->with('payment_ok', "Pago registrado. Ticket: {$ticketNumber}");
+    }
+
+    // ─────────────────────────────────────────
+    // GET /loans/{loanId}/ticket  → ticket imprimible
+    // ─────────────────────────────────────────
+    public function ticket(int $loanId, Request $request, MyBankApi $api)
+    {
+        $accessToken = session('mybank_access_token');
+        if (!$accessToken) {
+            return redirect()->route('login');
+        }
+
+        // Datos base del préstamo
+        $loanRes = $api->getLoan($accessToken, $loanId);
+        if (!$loanRes['ok']) {
+            return redirect()->route('loans.show', $loanId);
+        }
+        $loan = $loanRes['data'];
+
+        $summaryRes = $api->loanSummary($accessToken, $loanId);
+        $summary    = $summaryRes['ok'] ? $summaryRes['data'] : [];
+
+        // Info del cliente
+        $clientId = $loan['client_id'] ?? null;
+        $clientName = '—'; $clientNum = '—';
+        if ($clientId) {
+            $clientRes = $api->clientDashboard($accessToken, $clientId);
+            if ($clientRes['ok']) {
+                $cl = $clientRes['data']['client'] ?? [];
+                $clientName = $cl['full_name']     ?? '—';
+                $clientNum  = $cl['client_number'] ?? '—';
+            }
+        }
+
+        // Todos los pagos del préstamo
+        $paymentsRes = $api->listPaymentsByLoan($accessToken, $loanId);
+        $allPayments = ($paymentsRes['ok'] && is_array($paymentsRes['data']))
+            ? $paymentsRes['data']
+            : [];
+
+        $totalPayments = count($allPayments);
+
+        // ── Si viene payment_id específico, buscar ese pago ──
+        $requestedPaymentId = $request->query('payment_id');
+        $targetPayment      = null;
+        $paymentIndex       = $totalPayments; // posición (1-based)
+
+        if ($requestedPaymentId) {
+            foreach ($allPayments as $idx => $p) {
+                if ((string)($p['id'] ?? '') === (string)$requestedPaymentId) {
+                    $targetPayment = $p;
+                    $paymentIndex  = $idx + 1;
+                    break;
+                }
+            }
+        }
+
+        // Fallback: si viene de sesión flash (recién pagó) o toma el último
+        if (!$targetPayment) {
+            $flashData = session('ticket_data');
+            if ($flashData) {
+                return view('auth.loans.ticket', ['ticket' => $flashData]);
+            }
+            $targetPayment = count($allPayments) > 0 ? end($allPayments) : [];
+            $paymentIndex  = $totalPayments;
+        }
+
+        $methodMap = ['CASH'=>'Efectivo','TRANSFER'=>'Transferencia','CARD'=>'Tarjeta','OTHER'=>'Otro'];
+
+        $ticketData = [
+            'ticket_number'  => $targetPayment['ticket_number'] ?? '—',
+            'loan_id'        => $loanId,
+            'client_name'    => $clientName,
+            'client_number'  => $clientNum,
+            'amount_paid'    => (float)($targetPayment['amount_paid'] ?? 0),
+            'payment_method' => $targetPayment['payment_method'] ?? '—',
+            'payment_number' => $paymentIndex,
+            'payments_total' => $loan['payments_count'] ?? '—',
+            'total_amount'   => $loan['total_amount']   ?? 0,
+            'remaining'      => $summary['remaining_balance'] ?? 0,
+            // Timestamp ISO original (UTC) para que el browser lo convierta a hora local
+            'paid_at_iso'    => $targetPayment['paid_at'] ?? null,
+            // Formato legible (Carbon lo convierte con la TZ de app.php = America/Mexico_City)
+            'paid_at'        => isset($targetPayment['paid_at'])
+                ? \Carbon\Carbon::parse($targetPayment['paid_at'])
+                    ->setTimezone(config('app.timezone'))
+                    ->format('d/m/Y H:i')
+                : now()->format('d/m/Y H:i'),
+            'notes'          => $targetPayment['notes'] ?? null,
+        ];
+
+        return view('auth.loans.ticket', ['ticket' => $ticketData]);
     }
 }

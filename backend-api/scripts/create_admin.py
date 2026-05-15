@@ -42,6 +42,7 @@ def create_admin():
         password = "Admin123!"   # CAMBIAR DESPUES DEL PRIMER LOGIN
 
         admin = User(
+            user_number=1,           # Admin siempre es el folio 1
             username=username,
             email=email,
             password_hash=hash_password(password),

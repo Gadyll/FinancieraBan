@@ -29,16 +29,19 @@ Route::middleware(['mybank.auth', 'mybank.admin'])->group(function () {
     Route::post('/users/{userId}/reset-password', [UsersController::class, 'resetPassword'])->name('users.reset-password');
 
     // Clientes
-    Route::get('/clients',                [ClientsController::class, 'index'])->name('clients.index');
-    Route::post('/clients',               [ClientsController::class, 'store'])->name('clients.store');
-    Route::patch('/clients/{clientId}',   [ClientsController::class, 'update'])->name('clients.update');
+    Route::get('/clients',                    [ClientsController::class, 'index'])->name('clients.index');
+    Route::post('/clients',                   [ClientsController::class, 'store'])->name('clients.store');
+    Route::patch('/clients/{clientId}',       [ClientsController::class, 'update'])->name('clients.update');
+    Route::delete('/clients/{clientId}',      [ClientsController::class, 'destroy'])->name('clients.destroy');
     Route::post('/clients/{clientId}/assign', [ClientsController::class, 'assign'])->name('clients.assign');
 
     // Préstamos
-    Route::get('/loans',                       [LoansController::class, 'index'])->name('loans.index');
-    Route::get('/loans/create',                [LoansController::class, 'create'])->name('loans.create');
-    Route::post('/loans',                      [LoansController::class, 'store'])->name('loans.store');
-    Route::get('/loans/{loanId}',              [LoansController::class, 'show'])->name('loans.show');
-    Route::post('/loans/{loanId}/pay',         [LoansController::class, 'pay'])->name('loans.pay');
-    Route::post('/loans/{loanId}/surcharge',   [LoansController::class, 'storeSurcharge'])->name('loans.surcharge');
+    Route::get('/loans',                                        [LoansController::class, 'index'])->name('loans.index');
+    Route::get('/loans/create',                                 [LoansController::class, 'create'])->name('loans.create');
+    Route::post('/loans',                                       [LoansController::class, 'store'])->name('loans.store');
+    Route::get('/loans/{loanId}',                               [LoansController::class, 'show'])->name('loans.show');
+    Route::post('/loans/{loanId}/pay',                          [LoansController::class, 'pay'])->name('loans.pay');
+    Route::post('/loans/{loanId}/surcharge',                    [LoansController::class, 'storeSurcharge'])->name('loans.surcharge');
+    Route::post('/loans/{loanId}/surcharges/{surchargeId}/pay', [LoansController::class, 'paySurcharge'])->name('loans.surcharge.pay');
+    Route::get('/loans/{loanId}/ticket',                        [LoansController::class, 'ticket'])->name('loans.ticket');
 });

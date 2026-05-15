@@ -53,8 +53,19 @@ class DashboardController extends Controller
         if (!$byUserResponse['ok']) {
             $errors[] = "BY-USER FALLÓ ({$byUserResponse['status']}): " . json_encode($byUserResponse['data']);
         } else {
-            // Tu API devuelve: { date: ..., items: [...] }
             $items = $byUserResponse['data']['items'] ?? [];
+
+            // 3b) Para cada cobrador, cargar el detalle de sus pagos del día
+            foreach ($items as &$item) {
+                $userId = $item['user_id'] ?? null;
+                if ($userId) {
+                    $detailRes = $api->collectorDetail($accessToken, $date, (int)$userId);
+                    $item['payments_detail'] = $detailRes['ok'] ? ($detailRes['data'] ?? []) : [];
+                } else {
+                    $item['payments_detail'] = [];
+                }
+            }
+            unset($item); // romper referencia
         }
 
         // 4) /users para contar cobradores activos

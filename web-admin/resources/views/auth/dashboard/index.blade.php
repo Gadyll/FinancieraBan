@@ -17,16 +17,10 @@
     display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.5rem;
 }
 
-/* Collector table row hover */
-.collector-row td { padding: .85rem 1rem; }
-.collector-name { font-weight: 800; }
+/* Progress bar — already in app.css, override here for dashboard */
+.collector-row td { padding: .85rem 1rem; vertical-align: middle; }
+.collector-name { font-weight: 800; font-size: .95rem; }
 .collector-sub  { font-size: .82rem; color: #8896a8; }
-
-/* Progress bar */
-.prog-wrap { display: flex; align-items: center; gap: .6rem; }
-.prog-bar  { flex: 1; height: 6px; background: rgba(26,111,207,.10); border-radius: 999px; overflow: hidden; }
-.prog-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
-.prog-label{ font-size: .84rem; font-weight: 700; min-width: 52px; text-align: right; }
 </style>
 @endpush
 
@@ -162,64 +156,237 @@
                 </svg>
                 Resumen por cobrador
             </h2>
-            <p class="card-sub">Rendimiento del día — {{ $date }}</p>
+            <p class="card-sub">Rendimiento del día — {{ $date }} · Clic en una fila para ver el historial</p>
         </div>
     </div>
     <div class="card-body-flush">
-        <div class="table-wrap">
-            <table class="tbl">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Cobrador</th>
-                        <th class="text-right">Pagos</th>
-                        <th class="text-right">Tickets</th>
-                        <th>Total cobrado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($items as $i => $it)
-                        @php
-                            $username = $it['username'] ?? ($it['user'] ?? '—');
-                            $count    = (int)($it['payments_count'] ?? ($it['count'] ?? 0));
-                            $tickets  = (int)($it['tickets_count'] ?? 0);
-                            $amt      = (float)($it['total_paid'] ?? ($it['total'] ?? 0));
-                            // Porcentaje relativo al total del día
-                            $pct = $totalPaid > 0 ? min(100, round(($amt / $totalPaid) * 100)) : 0;
-                        @endphp
-                        <tr>
-                            <td class="cell-muted">{{ $i + 1 }}</td>
-                            <td>
-                                <div class="collector-name">{{ $username }}</div>
-                            </td>
-                            <td class="text-right">
-                                <span class="badge badge-blue">{{ $count }}</span>
-                            </td>
-                            <td class="text-right">
-                                <span class="badge badge-purple">{{ $tickets }}</span>
-                            </td>
-                            <td style="min-width:200px;">
-                                <div class="prog-wrap">
-                                    <div class="prog-bar">
-                                        <div class="prog-fill" style="width:{{ $pct }}%;background:var(--blue);"></div>
-                                    </div>
-                                    <span class="prog-label text-blue">${{ number_format($amt, 0) }}</span>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" style="text-align:center;padding:2.5rem;color:#8896a8;">
-                                <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto .75rem;opacity:.4;">
-                                    <path stroke-linecap="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                                </svg>
-                                Sin movimientos para esta fecha.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+        @forelse($items as $i => $it)
+            @php
+                $uid       = $it['user_id'] ?? 0;
+                $username  = $it['username'] ?? '—';
+                $count     = (int)($it['payments_count'] ?? 0);
+                $tickets   = (int)($it['tickets_count']  ?? 0);
+                $amt       = (float)($it['total_paid']   ?? 0);
+                $pct       = $totalPaid > 0 ? min(100, round(($amt / $totalPaid) * 100)) : 0;
+                $detail    = $it['payments_detail'] ?? [];
+                $rowId     = "collector-detail-{$uid}";
+                $hasActivity = $count > 0;
+                $methodMap = ['CASH'=>'Efectivo','TRANSFER'=>'Transferencia','CARD'=>'Tarjeta','OTHER'=>'Otro'];
+            @endphp
+
+            {{-- ── Fila resumen (clickeable) ── --}}
+            <div onclick="toggleDetail('{{ $rowId }}')"
+                 id="row-{{ $uid }}"
+                 style="display:flex; align-items:center; flex-wrap:wrap; gap:.75rem;
+                        padding: 1rem 1.25rem; cursor:pointer;
+                        border-bottom: 1px solid rgba(26,111,207,.07);
+                        transition:.15s; user-select:none;
+                        {{ !$hasActivity ? 'opacity:.6;' : '' }}"
+                 onmouseover="this.style.background='rgba(26,111,207,.03)'"
+                 onmouseout="this.style.background='transparent'">
+
+                {{-- # --}}
+                <div style="width:28px;color:#8896a8;font-size:.84rem;flex-shrink:0;">{{ $i+1 }}</div>
+
+                {{-- Nombre + sub --}}
+                <div style="flex:1;min-width:120px;">
+                    <div style="font-weight:800;font-size:.96rem;">{{ $username }}</div>
+                    <div style="font-size:.76rem;color:#8896a8;">
+                        @if($hasActivity)
+                            {{ $count }} cobro(s) de clientes asignados · {{ $tickets }} ticket(s)
+                        @else
+                            <span style="color:#c5cdd8;">Sin actividad este día</span>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Badges: grises si 0 --}}
+                <div style="display:flex;gap:.5rem;align-items:center;flex-shrink:0;">
+                    <span class="badge {{ $hasActivity ? 'badge-blue' : 'badge-gray' }} badge-num">
+                        {{ $count }}
+                    </span>
+                    <span class="badge {{ $tickets > 0 ? 'badge-purple' : 'badge-gray' }} badge-num">
+                        {{ $tickets }}
+                    </span>
+                </div>
+
+                {{-- Barra / estado --}}
+                <div style="min-width:180px;flex:1;max-width:280px;">
+                    @if($hasActivity)
+                        <div class="prog-wrap">
+                            <div class="prog-bar">
+                                <div class="prog-fill" style="width:{{ $pct }}%;background:var(--blue);"></div>
+                            </div>
+                            <span class="prog-label text-blue" style="min-width:80px;">${{ number_format($amt,0) }}</span>
+                        </div>
+                    @else
+                        <div style="font-size:.80rem;color:#c5cdd8;font-style:italic;">$0 — sin cobros</div>
+                    @endif
+                </div>
+
+                {{-- Flecha --}}
+                <div id="arrow-{{ $uid }}" style="flex-shrink:0;color:#8896a8;transition:.25s;transform:rotate(180deg);">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+            </div>
+
+            {{-- ── Detalle de pagos (expandido por defecto) ── --}}
+            <div id="{{ $rowId }}"
+                 style="display:block; background:rgba(26,111,207,.025);
+                        border-bottom: 1px solid rgba(26,111,207,.10);">
+                @if(count($detail) > 0)
+                    <div style="padding:.5rem 1.25rem 1rem;">
+                        <div style="font-size:.74rem;font-weight:800;text-transform:uppercase;
+                                    letter-spacing:.09em;color:var(--blue);margin:.6rem 0 .5rem;">
+                            Historial de pagos del día
+                        </div>
+                        <div class="table-wrap" style="border-radius:10px;overflow:hidden;border:1px solid rgba(26,111,207,.12);">
+                            <table class="tbl" style="font-size:.85rem;">
+                                <thead>
+                                    <tr style="background:rgba(26,111,207,.06);">
+                                        <th style="width:36px;">#</th>
+                                        <th>Cliente</th>
+                                        <th>N° Cliente</th>
+                                        <th>Ticket</th>
+                                        <th class="text-right">Monto</th>
+                                        <th>Método</th>
+                                        <th>Hora</th>
+                                        <th>Capturado por</th>
+                                        <th style="width:44px;text-align:center;">🖨️</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($detail as $di => $pay)
+                                        <tr>
+                                            <td class="cell-muted">{{ $di + 1 }}</td>
+                                            <td style="font-weight:700;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                                {{ $pay['client_name'] ?? '—' }}
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-gray" style="font-size:.75rem;">
+                                                    {{ $pay['client_number'] ?? '—' }}
+                                                </span>
+                                            </td>
+                                            <td class="mono cell-muted" style="font-size:.80rem;">
+                                                {{ $pay['ticket_number'] ?? '—' }}
+                                            </td>
+                                            <td class="text-right">
+                                                <strong style="color:var(--teal);">
+                                                    ${{ number_format((float)($pay['amount_paid']??0), 2) }}
+                                                </strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-gray" style="font-size:.73rem;">
+                                                    {{ $methodMap[$pay['payment_method']??''] ?? ($pay['payment_method']??'—') }}
+                                                </span>
+                                            </td>
+                                            <td class="mono cell-muted" style="font-size:.80rem;">
+                                                @php $isoTs = $pay['paid_at_iso'] ?? null; @endphp
+                                                @if($isoTs)
+                                                    <span class="local-time" data-utc="{{ $isoTs }}"
+                                                          title="{{ $isoTs }}">
+                                                        {{ $pay['paid_at'] ?? '—' }}
+                                                    </span>
+                                                @else
+                                                    {{ $pay['paid_at'] ?? '—' }}
+                                                @endif
+                                            </td>
+                                            <td style="font-size:.78rem;">
+                                                @php $regBy = $pay['registered_by'] ?? '—'; @endphp
+                                                @if($regBy === $username)
+                                                    <span style="color:#8896a8;">{{ $regBy }}</span>
+                                                @else
+                                                    <span class="badge badge-orange" style="font-size:.70rem;" title="Registrado por admin">
+                                                        {{ $regBy }}
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td style="text-align:center;">
+                                                @if(!empty($pay['loan_id']))
+                                                    <a href="{{ route('loans.ticket', ['loanId'=>$pay['loan_id']]) }}?payment_id={{ $pay['payment_id']??'' }}"
+                                                       target="_blank"
+                                                       title="Imprimir ticket"
+                                                       style="display:inline-flex;align-items:center;justify-content:center;
+                                                              width:28px;height:28px;border-radius:7px;
+                                                              background:rgba(26,111,207,.08);color:var(--blue);
+                                                              text-decoration:none;transition:.15s;"
+                                                       onmouseover="this.style.background='rgba(26,111,207,.2)'"
+                                                       onmouseout="this.style.background='rgba(26,111,207,.08)'">
+                                                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+                                                            <rect x="6" y="14" width="12" height="8" rx="1"/>
+                                                        </svg>
+                                                    </a>
+                                                @else
+                                                    <span style="color:#ccc;">—</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    <tr style="background:rgba(13,184,138,.05);border-top:2px solid rgba(13,184,138,.20);">
+                                        <td colspan="5" style="font-weight:800;padding:.7rem 1rem;font-size:.84rem;">
+                                            TOTAL DEL DÍA — {{ strtoupper($username) }}
+                                        </td>
+                                        <td class="text-right" style="font-weight:900;color:var(--teal);font-size:1rem;padding:.7rem 1rem;">
+                                            ${{ number_format($amt, 2) }}
+                                        </td>
+                                        <td colspan="3"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                @else
+                    <div style="padding:1rem 1.5rem;color:#8896a8;font-size:.87rem;font-style:italic;">
+                        Sin detalle de pagos para esta fecha.
+                    </div>
+                @endif
+            </div>
+
+        @empty
+            <div style="text-align:center;padding:2.5rem;color:#8896a8;">
+                <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto .75rem;opacity:.4;">
+                    <path stroke-linecap="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Sin movimientos para esta fecha.
+            </div>
+        @endforelse
     </div>
 </div>
+
+<script>
+function toggleDetail(id) {
+    const el    = document.getElementById(id);
+    const uid   = id.replace('collector-detail-', '');
+    const arrow = document.getElementById('arrow-' + uid);
+    const open  = el.style.display !== 'none';
+
+    el.style.display = open ? 'none' : 'block';
+    if (arrow) arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+// Convierte timestamps UTC/ISO a la hora LOCAL del dispositivo
+function applyLocalTimes() {
+    document.querySelectorAll('.local-time[data-utc]').forEach(function(el) {
+        const iso = el.getAttribute('data-utc');
+        if (!iso) return;
+        try {
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return;
+            el.textContent = d.toLocaleTimeString([], {
+                hour:   '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            // Tooltip con fecha y hora completa local
+            el.title = d.toLocaleString();
+        } catch(e) {}
+    });
+}
+document.addEventListener('DOMContentLoaded', applyLocalTimes);
+</script>
 @endsection

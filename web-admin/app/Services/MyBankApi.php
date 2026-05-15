@@ -231,6 +231,16 @@ class MyBankApi
         return $this->ok($response);
     }
 
+    public function deleteClient(string $accessToken, int $clientId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->delete($this->baseUrl . "/clients/{$clientId}");
+
+        return $this->ok($response);
+    }
+
     /**
      * Compatibilidad:
      * - Nuevo: POST /clients/{client_id}/assign   body { user_id }
@@ -396,6 +406,29 @@ class MyBankApi
             ->timeout(15)
             ->withToken($accessToken)
             ->get($this->baseUrl . "/loans/{$loanId}/surcharges");
+
+        return $this->ok($response);
+    }
+
+    public function paySurcharge(string $accessToken, int $loanId, int $surchargeId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->post($this->baseUrl . "/loans/{$loanId}/surcharges/{$surchargeId}/pay");
+
+        return $this->ok($response);
+    }
+
+    public function collectorDetail(string $accessToken, string $date, int $userId): array
+    {
+        $response = Http::acceptJson()
+            ->timeout(15)
+            ->withToken($accessToken)
+            ->get($this->baseUrl . "/reports/daily/by-user/detail", [
+                'date'    => $date,
+                'user_id' => $userId,
+            ]);
 
         return $this->ok($response);
     }

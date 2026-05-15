@@ -38,13 +38,12 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     role          ENUM('ADMIN','USER') NOT NULL DEFAULT 'USER',
     is_active     TINYINT(1)   NOT NULL DEFAULT 1,
-    user_number   INT          NULL,
+    user_number   INT UNSIGNED NOT NULL UNIQUE,
     created_at    DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at    DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     UNIQUE KEY ix_users_username (username),
-    UNIQUE KEY ix_users_email (email),
-    UNIQUE KEY ix_users_user_number (user_number)
+    UNIQUE KEY ix_users_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2) clients
@@ -202,16 +201,17 @@ CREATE TABLE alembic_version (
 INSERT INTO alembic_version (version_num) VALUES ('b2c4d1e9f8a7');
 
 -- ── SEED: Usuario administrador inicial ────────────────────
--- Contraseña: Admin123! (bcrypt hash generado con cost=12)
--- ⚠️ Cambia la contraseña después del primer login.
-INSERT INTO users (username, email, password_hash, role, is_active, user_number)
+-- Ejecuta scripts/create_admin.py despues del reset para crear el hash real.
+-- O usa este INSERT de emergencia solo para acceso inicial:
+-- Contrasena: Admin123!
+INSERT INTO users (user_number, username, email, password_hash, role, is_active)
 VALUES (
+    1,
     'admin',
     'admin@mybank.local',
-    '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMeSSm.BtlNS7sAnKuPdT.5rB2',  -- Admin123!
+    '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMeSSm.BtlNS7sAnKuPdT.5rB2',
     'ADMIN',
-    1,
-    'U00001'
+    1
 );
 
 -- ============================================================

@@ -7,6 +7,7 @@ from app.core.dependencies import require_admin
 from app.services.report_service import (
     get_daily_report,
     get_daily_report_by_user,
+    get_daily_payments_by_user,
 )
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -43,3 +44,15 @@ def daily_by_user_report(
 ):
     report_date = _resolve_date(date, d)
     return get_daily_report_by_user(db, report_date)
+
+
+@router.get("/daily/by-user/detail", summary="Detalle de pagos de un cobrador en un día")
+def daily_by_user_detail(
+    date: date | None = Query(default=None, description="Fecha (YYYY-MM-DD)"),
+    d: date | None = Query(default=None, description="Alias legacy"),
+    user_id: int = Query(..., description="ID del cobrador"),
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    report_date = _resolve_date(date, d)
+    return get_daily_payments_by_user(db, report_date, user_id)

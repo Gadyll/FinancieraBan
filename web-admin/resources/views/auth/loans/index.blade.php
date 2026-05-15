@@ -123,7 +123,6 @@
                         <th>Ciclo</th>
                         <th class="text-right">Capital</th>
                         <th class="text-right">+ Interés</th>
-                        <th class="text-right">+ IVA</th>
                         <th class="text-right">= Total</th>
                         <th>Cuota</th>
                         <th>Pagos</th>
@@ -144,7 +143,7 @@
                             $client   = $clientsMap[$clientId] ?? null;
                             $name     = $client['full_name'] ?? "Cliente #$clientId";
                             $num      = $client['client_number'] ?? '';
-                            $interest = (float)($loan['principal_amount'] ?? 0) * ((float)($loan['interest_rate'] ?? 0) / 100);
+                            $interestAmt = (float)($loan['interest_amount'] ?? 0);
                             $freqVal  = $loan['frequency'] ?? '';
                             $freqLbl  = match($freqVal){ 'WEEKLY'=>'Semanal','BIWEEKLY'=>'Quincenal','MONTHLY'=>'Mensual',default=>$freqVal };
                             $freqCls  = match($freqVal){ 'WEEKLY'=>'freq-w','BIWEEKLY'=>'freq-b','MONTHLY'=>'freq-m',default=>'' };
@@ -162,8 +161,7 @@
                                 <span class="badge badge-gray">C{{ $loan['cycle_number'] ?? '?' }}</span>
                             </td>
                             <td class="cell-right cell-muted">${{ number_format((float)($loan['principal_amount']??0),0) }}</td>
-                            <td class="cell-right" style="color:var(--blue);">${{ number_format($interest,0) }}</td>
-                            <td class="cell-right" style="color:var(--purple);">${{ number_format((float)($loan['iva_amount']??0),0) }}</td>
+                            <td class="cell-right" style="color:var(--blue);">${{ number_format($interestAmt,0) }}</td>
                             <td class="cell-right"><strong style="font-size:1rem;">${{ number_format((float)($loan['total_amount']??0),0) }}</strong></td>
                             <td class="cell-right cell-money text-teal">${{ number_format((float)($loan['payment_amount']??0),0) }}</td>
                             <td style="text-align:center;"><span class="badge badge-gray cnt">{{ $loan['payments_count']??'—' }}</span></td>
@@ -187,7 +185,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="13" style="text-align:center;padding:3rem;color:var(--muted);">
+                            <td colspan="12" style="text-align:center;padding:3rem;color:var(--muted);">
                                 <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto .75rem;opacity:.35;">
                                     <path stroke-linecap="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                 </svg>

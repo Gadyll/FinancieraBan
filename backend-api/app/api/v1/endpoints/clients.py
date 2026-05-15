@@ -53,6 +53,21 @@ def create_client(
     db: Session = Depends(get_db),
     _admin=Depends(require_admin),
 ):
+    # ── Validar nombre duplicado: mismo nombre completo (sin importar mayúsculas) ──
+    nombre_normalizado = data.full_name.strip().upper()
+    duplicado = (
+        db.query(Client)
+        .filter(func.upper(func.trim(Client.full_name)) == nombre_normalizado)
+        .first()
+    )
+    if duplicado:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Ya existe un cliente con el nombre completo '{data.full_name.strip()}' "
+                   f"(No. {duplicado.client_number}). "
+                   f"Puede registrar el mismo nombre si el apellido es diferente."
+        )
+
     client_number = generate_next_client_number(db)
 
     client = Client(
@@ -62,7 +77,6 @@ def create_client(
         address=data.address.strip(),
         marital_status=data.marital_status,
         spouse_full_name=data.spouse_full_name.strip() if data.spouse_full_name else None,
-        # ✅ Campos nuevos
         birth_date=data.birth_date,
         occupation=data.occupation.strip() if data.occupation else None,
         monthly_income=data.monthly_income,
@@ -221,6 +235,36 @@ def update_client(
     db.commit()
     db.refresh(client)
     return client
+
+
+# =========================
+# ADMIN: DELETE CLIENT
+# =========================
+@router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_client(
+    client_id: int,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    # Protección: no eliminar si tiene préstamos registrados
+    has_loans = db.query(Loan).filter(Loan.client_id == client_id).first()
+    if has_loans:
+        raise HTTPException(
+            status_code=409,
+            detail="No se puede eliminar: el cliente tiene préstamos registrados. "
+                   "Puedes solo editar sus datos."
+        )
+
+    # Eliminar aval y asignaciones antes de borrar el cliente
+    db.query(Guarantor).filter(Guarantor.client_id == client_id).delete()
+    db.query(ClientAssignment).filter(ClientAssignment.client_id == client_id).delete()
+    db.delete(client)
+    db.commit()
+    return None
 
 
 # =========================

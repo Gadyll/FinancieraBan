@@ -94,12 +94,31 @@ class ClientsController extends Controller
         $resp = $api->createClient($accessToken, $data);
 
         if (!$resp['ok']) {
-            return back()->withInput()->withErrors([
-                'client_create' => "CREATE CLIENT FALLÓ ({$resp['status']}): " . json_encode($resp['data']),
-            ]);
+            $detail = $resp['data']['detail'] ?? json_encode($resp['data']);
+            return back()->withInput()->withErrors(['client_create' => $detail]);
         }
 
-        return redirect()->route('clients.index')->with('success', 'Cliente creado correctamente.');
+        $newClientId = $resp['data']['id'] ?? null;
+        return redirect()
+            ->route('clients.index', ['created' => 1, 'new_id' => $newClientId])
+            ->with('success', "✅ Cliente '{$resp['data']['full_name']}' registrado. Puedes modificarlo o eliminarlo.");
+    }
+
+    public function destroy(int $clientId, MyBankApi $api)
+    {
+        $accessToken = session('mybank_access_token');
+        if (!$accessToken) {
+            return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
+        }
+
+        $resp = $api->deleteClient($accessToken, $clientId);
+
+        if (!$resp['ok']) {
+            $detail = $resp['data']['detail'] ?? json_encode($resp['data']);
+            return back()->withErrors(['client_delete' => $detail]);
+        }
+
+        return redirect()->route('clients.index')->with('success', '🗑️ Cliente eliminado correctamente.');
     }
 
     public function update(int $clientId, Request $request, MyBankApi $api)
