@@ -50,6 +50,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        // invalidate() destruye toda la sesión (tokens, user, fingerprint, etc.)
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

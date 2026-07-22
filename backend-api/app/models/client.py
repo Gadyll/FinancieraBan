@@ -4,9 +4,13 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import Date, DateTime, Integer, Numeric, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING, Optional
 
 from app.database.base import Base
+
+if TYPE_CHECKING:
+    from app.models.guarantor import Guarantor
 
 
 class Client(Base):
@@ -34,6 +38,14 @@ class Client(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    # Relationship to Guarantor
+    guarantor: Mapped[Optional["Guarantor"]] = relationship(
+        "Guarantor",
+        uselist=False,
+        backref="client",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

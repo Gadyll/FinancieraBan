@@ -12,7 +12,7 @@ from app.models.loan_surcharge import LoanSurcharge
 from app.models.payment import Payment, PaymentMethod
 from app.schemas.loan import LoanCreate, LoanOut, ScheduleOut, LoanWithScheduleOut
 from app.schemas.surcharge import SurchargeCreate, SurchargeOut
-from app.services.loan_service import create_loan_with_schedule
+from app.services.loan_service import create_loan_with_schedule, TABLA_TASAS
 
 from datetime import date
 from sqlalchemy import func
@@ -42,7 +42,7 @@ def create_loan(
         client_id=data.client_id,
         cycle_number=data.cycle_number,
         principal_amount=data.principal_amount,
-        interest_amount=data.interest_amount,
+        interest_rate=data.interest_rate,
         payments_count=data.payments_count,
         frequency=data.frequency,
         start_date=data.start_date,
@@ -360,3 +360,23 @@ def pay_surcharge(
     db.commit()
     db.refresh(surcharge)
     return surcharge
+
+
+# =========================
+# TABLA DE TASAS OFICIAL
+# =========================
+@router.get(
+    "/rate-table",
+    summary="Tabla de tasas oficial",
+)
+def get_rate_table(
+    _admin=Depends(require_admin),
+):
+    """
+    Retorna la tabla oficial de tasas de interés.
+    Cada entrada: { rate: "5.40", factor: "76.00" }
+    """
+    return [
+        {"rate": rate, "factor": str(factor)}
+        for rate, factor in sorted(TABLA_TASAS.items(), key=lambda x: float(x[0]))
+    ]

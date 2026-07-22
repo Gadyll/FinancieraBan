@@ -4,35 +4,54 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.services.loan_service import TASAS_VALIDAS
+
 
 class LoanFrequency(str, Enum):
     WEEKLY   = "WEEKLY"
     BIWEEKLY = "BIWEEKLY"
     MONTHLY  = "MONTHLY"
+    YEARLY   = "YEARLY"
 
 
 class LoanCreate(BaseModel):
     client_id:    int     = Field(..., gt=0)
     cycle_number: int | None = Field(default=None, gt=0)
 
-    # ── Nueva lógica FinancieraBan: interés FIJO pactado (no porcentaje) ──
+    # ── Lógica FinancieraBan con Tabla de Tasas Oficial ──
     principal_amount: Decimal = Field(..., gt=0, description="Capital prestado")
-    interest_amount:  Decimal = Field(..., ge=0, description="Interés fijo pactado en $")
+    interest_rate:    Decimal = Field(
+        ..., ge=Decimal("3.50"), le=Decimal("7.50"),
+        description="Tasa de interés (%) de la tabla oficial"
+    )
 
-    # Cuota de cobro manual (opcional) — para redondeos como $2,300 en lugar de $2,280
+    # Cuota de cobro manual (opcional) — para redondeos manuales
     payment_amount_override: Decimal | None = Field(
         default=None, ge=0,
         description="Cuota manual redondeada (ej: $2,300 vs $2,280 calculado)"
     )
 
-    payments_count: int = Field(..., gt=0, le=520)
+    # frequency MUST come before payments_count so cross-field validator works
     frequency:      LoanFrequency
+    payments_count: int = Field(..., gt=0, le=520)
     start_date:     date
 
-    @field_validator("principal_amount", "interest_amount")
+    @field_validator("principal_amount")
     @classmethod
-    def _quantize_money(cls, v: Decimal) -> Decimal:
+    def _quantize_principal(cls, v: Decimal) -> Decimal:
         return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    @field_validator("interest_rate")
+    @classmethod
+    def _validate_rate(cls, v: Decimal) -> Decimal:
+        """Verifica que la tasa exista en la tabla oficial autorizada."""
+        rate = v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if rate not in TASAS_VALIDAS:
+            raise ValueError(
+                f"La tasa {rate}% no existe en la tabla oficial autorizada. "
+                f"Rango válido: 3.50% a 7.50% (incrementos de 0.10)."
+            )
+        return rate
 
     @field_validator("payment_amount_override")
     @classmethod
@@ -41,12 +60,10 @@ class LoanCreate(BaseModel):
             return None
         return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    @field_validator("payments_count")
-    @classmethod
-    def _validate_payments_count(cls, payments_count: int, info) -> int:
-        freq = info.data.get("frequency")
-        if not freq:
-            return payments_count
+    @model_validator(mode="after")
+    def _validate_payments_count(self) -> "LoanCreate":
+        freq = self.frequency
+        payments_count = self.payments_count
 
         if freq == LoanFrequency.WEEKLY:
             if payments_count < 16 or payments_count > 104:
@@ -60,7 +77,11 @@ class LoanCreate(BaseModel):
             if payments_count < 4 or payments_count > 24:
                 raise ValueError("MENSUAL: mínimo 4 meses, máximo 24 meses.")
 
-        return payments_count
+        elif freq == LoanFrequency.YEARLY:
+            if payments_count < 1 or payments_count > 10:
+                raise ValueError("ANUAL: mínimo 1 año, máximo 10 años.")
+
+        return self
 
 
 class LoanOut(BaseModel):
@@ -69,7 +90,7 @@ class LoanOut(BaseModel):
     cycle_number:     int
     principal_amount: Decimal
     interest_amount:  Decimal
-    interest_rate:    Decimal   # legacy
+    interest_rate:    Decimal
     iva_rate:         Decimal
     iva_amount:       Decimal
     total_amount:     Decimal

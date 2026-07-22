@@ -81,13 +81,14 @@
     $status    = $loan['status'] ?? 'ACTIVE';
     $statusCls = match($status){ 'ACTIVE'=>'badge-blue','PAID'=>'badge-teal','LATE'=>'badge-red',default=>'badge-gray' };
     $statusLbl = match($status){ 'ACTIVE'=>'Activo','PAID'=>'Pagado','LATE'=>'Vencido',default=>'Cancelado' };
-    $freqLbl   = match($loan['frequency']??''){ 'WEEKLY'=>'Semanal','BIWEEKLY'=>'Quincenal','MONTHLY'=>'Mensual',default=>$loan['frequency']??'—' };
+    $freqLbl   = match($loan['frequency']??''){ 'WEEKLY'=>'Semanal','BIWEEKLY'=>'Quincenal','MONTHLY'=>'Mensual','YEARLY'=>'Anual',default=>$loan['frequency']??'—' };
 
-    $principal   = (float)($loan['principal_amount'] ?? 0);
-    $interestAmt = (float)($loan['interest_amount']  ?? 0);
-    $total       = (float)($loan['total_amount']     ?? 0);
-    $cuota       = (float)($loan['payment_amount']   ?? 0);
-    $nPagos      = (int)($loan['payments_count']     ?? 0);
+    $principal    = (float)($loan['principal_amount'] ?? 0);
+    $interestAmt  = (float)($loan['interest_amount']  ?? 0);
+    $interestRate = (float)($loan['interest_rate']    ?? 0);
+    $total        = (float)($loan['total_amount']     ?? 0);
+    $cuota        = (float)($loan['payment_amount']   ?? 0);
+    $nPagos       = (int)($loan['payments_count']     ?? 0);
 
     $totalPaid = (float)($summary['total_paid'] ?? 0);
     $remaining = (float)($summary['remaining'] ?? max(0, $total - $totalPaid));
@@ -207,12 +208,18 @@
             <span class="bk-label">💰 Capital prestado</span>
             <span class="bk-val">${{ number_format($principal,2) }}</span>
         </div>
+        @if($interestRate > 0)
         <div class="bk-row">
-            <span class="bk-label">📈 Interés pactado</span>
+            <span class="bk-label">📊 Tasa de interés</span>
+            <span class="bk-val" style="color:var(--blue);">{{ number_format($interestRate,2) }}%</span>
+        </div>
+        @endif
+        <div class="bk-row">
+            <span class="bk-label">📈 Interés generado</span>
             <span class="bk-val" style="color:var(--blue);">+ ${{ number_format($interestAmt,2) }}</span>
         </div>
         <div class="bk-row total">
-            <span class="bk-label">TOTAL PROGRAMADO</span>
+            <span class="bk-label">TOTAL CONGELADO</span>
             <span class="bk-val">${{ number_format($total,2) }}</span>
         </div>
     </div>
@@ -259,7 +266,7 @@
                             <tr>
                                 <th style="width:36px;">#</th>
                                 <th>Ticket</th>
-                                <th class="text-right">Monto</th>
+                                <th class="cell-right">Monto</th>
                                 <th>Método</th>
                                 <th>Cobrador</th>
                                 <th>Fecha</th>
@@ -270,15 +277,15 @@
                             @foreach($payments as $idx => $pay)
                                 <tr class="row-paid">
                                     <td class="cell-muted" style="font-size:.80rem;">{{ $idx + 1 }}</td>
-                                    <td class="mono cell-muted" style="font-size:.82rem;">{{ $pay['ticket_number']??'—' }}</td>
-                                    <td class="text-right">
-                                        <strong style="color:var(--teal);font-size:1rem;">${{ number_format((float)($pay['amount_paid']??0),2) }}</strong>
+                                    <td class="cell-mono cell-muted">{{ $pay['ticket_number']??'—' }}</td>
+                                    <td class="cell-right cell-money text-teal">
+                                        ${{ number_format((float)($pay['amount_paid']??0),2) }}
                                     </td>
                                     <td>
                                         <span class="badge badge-gray">{{ $pay['payment_method']??'—' }}</span>
                                     </td>
                                     <td>{{ $pay['collector_username']??'—' }}</td>
-                                    <td class="mono cell-muted" style="font-size:.82rem;">{{ substr($pay['paid_at']??'',0,16) }}</td>
+                                    <td class="cell-mono cell-muted">{{ substr($pay['paid_at']??'',0,16) }}</td>
                                     <td style="text-align:center;">
                                         <a href="{{ route('loans.ticket', ['loanId'=>$loanId]) }}?payment_id={{ $pay['id']??'' }}"
                                            target="_blank"

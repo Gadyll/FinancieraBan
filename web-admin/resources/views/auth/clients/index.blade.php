@@ -3,21 +3,24 @@
 
 @push('styles')
 <style>
-/* Formulario lateral */
-.form-card {
-    background: #fff; border: 1px solid rgba(26,111,207,.12);
-    border-radius: 14px; box-shadow: 0 4px 20px rgba(13,27,46,.07);
-    overflow: hidden; position: sticky; top: 80px;
-}
-.form-card-head {
-    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
-    color: #fff; padding: 1rem 1.25rem;
-}
-.form-card-title { font-weight: 900; font-size: 1rem; margin: 0; }
-.form-card-sub   { font-size: .83rem; opacity: .80; margin-top: .2rem; }
-.form-card-body  { padding: 1.25rem; }
+/* Custom page styles */
+.client-num  { font-weight: 800; font-family: 'Courier New', monospace; color: var(--blue); font-size: .88rem; white-space: nowrap; }
+.client-name { font-weight: 700; white-space: nowrap; }
+.client-sub  { font-size: .80rem; color: var(--muted); margin-top: .1rem; }
 
-/* Sección dentro del form */
+.assign-inline {
+    display: flex; gap: .4rem; align-items: center;
+}
+.assign-inline select {
+    flex: 1; min-width: 130px; padding: .38rem .65rem;
+    border: 1.5px solid rgba(26,111,207,.18); border-radius: 8px;
+    background: #fafcff; font-family: 'Outfit', sans-serif;
+    font-size: .83rem; color: var(--text); outline: none;
+    cursor: pointer;
+}
+.assign-inline select:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(26,111,207,.10); }
+
+/* Form sections inside Drawers */
 .form-section {
     font-size: .72rem; font-weight: 800; text-transform: uppercase;
     letter-spacing: .10em; color: var(--blue);
@@ -29,66 +32,10 @@
 .form-section:first-child { margin-top: 0; }
 .form-section svg { opacity: .7; }
 
-/* Tabla clientes */
-.client-num  { font-weight: 800; font-family: 'Courier New', monospace; color: var(--blue); font-size: .88rem; white-space: nowrap; }
-.client-name { font-weight: 700; white-space: nowrap; }
-.client-sub  { font-size: .80rem; color: var(--muted); margin-top: .1rem; }
-
-/* Assign form inline */
-.assign-inline {
-    display: flex; gap: .4rem; align-items: center; flex-wrap: wrap;
+/* Custom column adjustments */
+.tbl th, .tbl td {
+    padding: 0.85rem 1rem;
 }
-.assign-inline select {
-    flex: 1; min-width: 110px; padding: .38rem .65rem;
-    border: 1.5px solid rgba(26,111,207,.18); border-radius: 8px;
-    background: #fafcff; font-family: 'Outfit', sans-serif;
-    font-size: .83rem; color: var(--text); outline: none;
-}
-.assign-inline select:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(26,111,207,.10); }
-
-/* Loan status */
-.loan-st { font-size: .76rem; font-weight: 700; }
-
-/* Search bar */
-.search-bar {
-    padding: .85rem 1.25rem; border-bottom: 1px solid rgba(26,111,207,.10);
-    background: #fafcff; display: flex; gap: .65rem; align-items: center; flex-wrap: wrap;
-}
-
-/* Action buttons row */
-.act-row { display: flex; flex-direction: column; gap: .3rem; }
-.act-btns { display: flex; gap: .3rem; flex-wrap: wrap; }
-
-/* Modal overlay */
-.modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(13,27,46,.55); backdrop-filter: blur(3px);
-    z-index: 9000; align-items: center; justify-content: center; padding: 1rem;
-}
-.modal-overlay.open { display: flex; }
-.modal-box {
-    background: #fff; border-radius: 16px; width: 100%; max-width: 580px;
-    box-shadow: 0 24px 80px rgba(13,27,46,.35); overflow: hidden;
-    max-height: 90vh; overflow-y: auto;
-}
-.modal-head {
-    background: linear-gradient(135deg,var(--blue),var(--blue-dark));
-    color: #fff; padding: 1.1rem 1.4rem;
-    display: flex; align-items: center; justify-content: space-between;
-}
-.modal-head h3 { font-weight: 900; font-size: 1rem; margin: 0; }
-.modal-close {
-    background: rgba(255,255,255,.15); border: none; color: #fff;
-    width: 28px; height: 28px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 1.1rem; transition: .13s;
-}
-.modal-close:hover { background: rgba(255,255,255,.3); }
-.modal-body { padding: 1.4rem; }
-.modal-footer { padding: .9rem 1.4rem; background: #fafcff; border-top: 1px solid rgba(26,111,207,.10); display: flex; gap: .6rem; justify-content: flex-end; }
-
-/* Danger modal */
-.modal-danger .modal-head { background: linear-gradient(135deg,#e03a3a,#b02020); }
 </style>
 @endpush
 
@@ -105,170 +52,89 @@
             Clientes
         </div>
         <h1 class="page-title">Clientes</h1>
-        <p class="page-sub">{{ count($clients) }} cliente(s) registrado(s). Registra o asigna cobradores aquí.</p>
+        <p class="page-sub">Gestiona la información de tus clientes y asigna cobradores de manera eficiente.</p>
+    </div>
+    <div>
+        <button class="btn btn-primary" onclick="openDrawer('registerClientDrawer')">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+            </svg>
+            Registrar Cliente
+        </button>
     </div>
 </div>
 
-{{-- Mensajes --}}
-@if(!empty($error))
-    <div class="alert alert-danger">⚠ {{ $error }}</div>
-@endif
-@if(session('success'))
-    <div class="alert alert-success">✓ {{ session('success') }}</div>
-@endif
-@if($errors->any())
-    <div class="alert alert-danger">{{ $errors->first() }}</div>
-@endif
-
 <div class="row g-3">
-
-    {{-- ══════ FORMULARIO ══════ --}}
-    <div class="col-12 col-xl-4">
-        <div class="form-card">
-            <div class="form-card-head">
-                <div class="form-card-title">
-                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle;margin-right:.35rem;">
-                        <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
-                    </svg>
-                    Registrar nuevo cliente
-                </div>
-                <div class="form-card-sub">El número de cliente se asigna automáticamente.</div>
-            </div>
-            <div class="form-card-body">
-                <form method="POST" action="{{ route('clients.store') }}" autocomplete="off">
-                    @csrf
-
-                    <div class="form-section">
-                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 20v-1a5 5 0 015-5h6a5 5 0 015 5v1"/>
-                        </svg>
-                        Datos personales
-                    </div>
-
-                    <div class="field">
-                        <label class="field-label field-required">Nombre completo</label>
-                        <input class="field-input" name="full_name" value="{{ old('full_name') }}" maxlength="150" required placeholder="Juan Pérez García">
-                    </div>
-
-                    <div class="grid-2">
-                        <div class="field">
-                            <label class="field-label field-required">Teléfono</label>
-                            <input class="field-input digits-only" name="phone" value="{{ old('phone') }}"
-                                   placeholder="4421234567" maxlength="10" inputmode="numeric" required>
-                            <div class="field-hint">10 dígitos</div>
-                        </div>
-                        <div class="field">
-                            <label class="field-label field-required">Estado civil</label>
-                            <select class="field-input field-select" name="marital_status" required>
-                                <option value="">— Seleccionar —</option>
-                                @foreach($maritalOptions as $op)
-                                    <option value="{{ $op }}" @selected(old('marital_status') === $op)>{{ $op }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label class="field-label field-required">Dirección</label>
-                        <input class="field-input" name="address" value="{{ old('address') }}" maxlength="255" required placeholder="Calle, Número, Colonia, Ciudad">
-                    </div>
-
-                    <div class="field">
-                        <label class="field-label">Nombre del cónyuge</label>
-                        <input class="field-input" name="spouse_full_name" value="{{ old('spouse_full_name') }}" maxlength="150" placeholder="(opcional)">
-                    </div>
-
-                    <div class="grid-3">
-                        <div class="field">
-                            <label class="field-label">Fecha nacimiento</label>
-                            <input class="field-input" type="date" name="birth_date" value="{{ old('birth_date') }}" max="{{ date('Y-m-d', strtotime('-18 years')) }}">
-                        </div>
-                        <div class="field">
-                            <label class="field-label">Ocupación</label>
-                            <input class="field-input" name="occupation" value="{{ old('occupation') }}" maxlength="100" placeholder="Empleado...">
-                        </div>
-                        <div class="field">
-                            <label class="field-label">Ingreso mensual</label>
-                            <input class="field-input" type="number" name="monthly_income" value="{{ old('monthly_income') }}" min="0" step="100" placeholder="$0.00">
-                        </div>
-                    </div>
-
-                    <div class="form-section">
-                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                        </svg>
-                        Datos del AVAL (obligatorio)
-                    </div>
-
-                    <div class="field">
-                        <label class="field-label field-required">Nombre completo del aval</label>
-                        <input class="field-input" name="guarantor_full_name" value="{{ old('guarantor_full_name') }}" maxlength="150" required placeholder="Nombre del garante">
-                    </div>
-
-                    <div class="field">
-                        <label class="field-label field-required">Dirección del aval</label>
-                        <input class="field-input" name="guarantor_address" value="{{ old('guarantor_address') }}" maxlength="255" required placeholder="Dirección del garante">
-                    </div>
-
-                    <div class="grid-2">
-                        <div class="field">
-                            <label class="field-label field-required">Teléfono del aval</label>
-                            <input class="field-input digits-only" name="guarantor_phone" value="{{ old('guarantor_phone') }}"
-                                   placeholder="4429876543" maxlength="10" inputmode="numeric" required>
-                        </div>
-                        <div class="field">
-                            <label class="field-label field-required">Estado civil del aval</label>
-                            <select class="field-input field-select" name="guarantor_marital_status" required>
-                                <option value="">— Seleccionar —</option>
-                                @foreach($maritalOptions as $op)
-                                    <option value="{{ $op }}" @selected(old('guarantor_marital_status') === $op)>{{ $op }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem;">
-                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        Registrar cliente
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- ══════ TABLA ══════ --}}
-    <div class="col-12 col-xl-8">
-        <div class="card" style="overflow:hidden;">
-
-            {{-- Search --}}
-            <div class="search-bar">
+    <div class="col-12">
+        {{-- Advanced Filter and Search Bar --}}
+        <div class="card mb-3" style="overflow:visible;">
+            <div class="search-bar" style="border-bottom: none;">
                 <div class="input-wrap" style="flex:1;min-width:220px;">
                     <span class="input-icon">
                         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
                         </svg>
                     </span>
-                    <input class="field-input" id="clientSearch"
-                           type="text" placeholder="Buscar por nombre o número...">
+                    <input class="field-input" id="clientSearch" type="text" placeholder="Buscar por nombre o número..." oninput="filterClients()">
                 </div>
-                <span style="font-size:.84rem;color:var(--muted);">{{ count($clients) }} cliente(s)</span>
+                
+                <button type="button" class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilters()">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                    </svg>
+                    Filtros avanzados
+                </button>
+                <span id="clientsCountText" style="font-size:.84rem;color:var(--muted); font-weight: 600;">{{ count($clients) }} cliente(s)</span>
             </div>
 
-            {{-- Tabla --}}
+            {{-- Collapsible filters --}}
+            <div class="collapsible-filters" id="collapsibleFilters">
+                <div class="grid-3">
+                    <div class="field">
+                        <label class="field-label">Estado Préstamo</label>
+                        <select class="field-input field-select" id="filterLoanStatus" onchange="filterClients()">
+                            <option value="">Todos</option>
+                            <option value="AL_CORRIENTE">Al corriente</option>
+                            <option value="ATRASADO">Atrasado</option>
+                            <option value="SIN_PRESTAMO">Sin préstamo</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Cobrador Asignado</label>
+                        <select class="field-input field-select" id="filterCollector" onchange="filterClients()">
+                            <option value="">Todos</option>
+                            @foreach($collectors as $u)
+                                <option value="{{ $u['id'] }}">{{ $u['username'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Estado Civil</label>
+                        <select class="field-input field-select" id="filterMarital" onchange="filterClients()">
+                            <option value="">Todos</option>
+                            @foreach($maritalOptions as $op)
+                                <option value="{{ $op }}">{{ $op }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Table Card --}}
+        <div class="card" style="overflow:hidden;">
             <div class="card-body-flush">
                 <div class="table-wrap">
                     <table class="tbl" id="clientsTable">
                         <thead>
                             <tr>
                                 <th>N° Cliente</th>
-                                <th>Nombre</th>
+                                <th>Nombre / Ocupación</th>
                                 <th>Teléfono</th>
-                                <th>Cobrador</th>
+                                <th>Cobrador Asignado</th>
                                 <th>Estado préstamo</th>
                                 <th>Próximo pago</th>
-                                <th style="min-width:180px;">Acciones</th>
+                                <th style="width: 50px; text-align: center;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -282,75 +148,100 @@
 
                                     if($loanSt === 'AL_CORRIENTE'){
                                         $rowCls = 'row-paid'; $bCls = 'badge-teal'; $bLbl = 'Al corriente';
+                                        $loanDataSt = 'AL_CORRIENTE';
                                     } elseif($loanSt === 'ATRASADO'){
                                         $rowCls = 'row-late'; $bCls = 'badge-red'; $bLbl = 'Atrasado ('.$overdue.')';
+                                        $loanDataSt = 'ATRASADO';
                                     } else {
                                         $rowCls = ''; $bCls = 'badge-gray'; $bLbl = 'Sin préstamo';
+                                        $loanDataSt = 'SIN_PRESTAMO';
                                     }
                                 @endphp
                                 <tr class="{{ $rowCls }}"
-                                    data-name="{{ strtolower(($c['full_name']??'').' '.($c['client_number']??'')) }}">
+                                    data-name="{{ strtolower(($c['full_name']??'').' '.($c['client_number']??'')) }}"
+                                    data-loan-status="{{ $loanDataSt }}"
+                                    data-collector-id="{{ $c['assigned_user_id'] ?? '' }}"
+                                    data-marital-status="{{ $c['marital_status'] ?? '' }}">
                                     <td>
                                         <span class="client-num">{{ $c['client_number'] ?? '—' }}</span>
                                     </td>
                                     <td>
                                         <div class="client-name">{{ $c['full_name'] ?? '—' }}</div>
                                         @if(!empty($c['occupation']))
-                                            <div class="client-sub">{{ $c['occupation'] }}</div>
+                                            <div class="client-sub">{{ $c['occupation'] }} • ${{ number_format($c['monthly_income'] ?? 0, 2) }}</div>
                                         @endif
                                     </td>
                                     <td class="mono cell-muted">{{ $c['phone'] ?? '—' }}</td>
                                     <td>
-                                        @if($assigned)
-                                            <span class="badge badge-blue">{{ $assigned }}</span>
-                                        @else
-                                            <span class="cell-muted" style="font-size:.85rem;">Sin asignar</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span class="badge {{ $bCls }}">{{ $bLbl }}</span>
-                                    </td>
-                                    <td class="mono cell-muted" style="font-size:.82rem;">
-                                        {{ $nextDue ?? '—' }}
-                                    </td>
-                                    <td>
                                         @if($cid)
-                                        <div class="act-row">
-                                            {{-- Asignar cobrador --}}
-                                            <form method="POST" action="{{ route('clients.assign', ['clientId'=>$cid]) }}">
+                                            <form method="POST" action="{{ route('clients.assign', ['clientId'=>$cid]) }}" style="margin:0;">
                                                 @csrf
                                                 <div class="assign-inline">
-                                                    <select name="user_id" required>
-                                                        <option value="">Cobrador...</option>
+                                                    <select name="user_id" onchange="this.form.submit()" required>
+                                                        <option value="">— Sin asignar —</option>
                                                         @foreach($collectors as $u)
-                                                            <option value="{{ $u['id'] }}"
-                                                                {{ ($c['assigned_user_id']??null)==$u['id'] ? 'selected' : '' }}>
+                                                            <option value="{{ $u['id'] }}" @selected(($c['assigned_user_id']??null)==$u['id'])>
                                                                 {{ $u['username'] }}
                                                             </option>
                                                         @endforeach
                                                     </select>
-                                                    <button class="btn btn-ghost btn-sm" type="submit">Asignar</button>
                                                 </div>
                                             </form>
-                                            {{-- Acciones: Préstamo / Editar / Eliminar --}}
-                                            <div class="act-btns">
-                                                <a href="{{ route('loans.create', ['client_id'=>$cid]) }}"
-                                                   class="btn btn-primary btn-sm">
-                                                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
-                                                    Préstamo
-                                                </a>
-                                                <button type="button" class="btn btn-ghost btn-sm"
-                                                    onclick="openEdit({{ $cid }}, {{ json_encode($c) }})">
-                                                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                                    Editar
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ $bCls }}">
+                                            <span class="badge-dot"></span>
+                                            {{ $bLbl }}
+                                        </span>
+                                    </td>
+                                    <td class="mono cell-muted" style="font-size:.82rem;">
+                                        {{ $nextDue ?? '—' }}
+                                    </td>
+                                    <td style="text-align: center;">
+                                        @if($cid)
+                                            <div class="meatball-menu">
+                                                <button class="meatball-btn" type="button" aria-label="Acciones">
+                                                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                                                    </svg>
                                                 </button>
-                                                <button type="button" class="btn btn-sm" style="background:rgba(224,58,58,.08);color:var(--red);border:1px solid rgba(224,58,58,.2);"
-                                                    onclick="openDelete({{ $cid }}, '{{ addslashes($c['full_name']??'') }}', {{ $loanSt !== null && $loanSt !== 'SIN_PRESTAMO' ? 'true' : 'false' }})">
-                                                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path stroke-linecap="round" d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
-                                                    Borrar
-                                                </button>
+                                                <div class="meatball-dropdown">
+                                                    <a href="{{ route('loans.create', ['client_id'=>$cid]) }}" class="meatball-item">
+                                                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+                                                        </svg>
+                                                        Nuevo Préstamo
+                                                    </a>
+                                                    <button type="button" class="meatball-item" onclick='openEdit({{ $cid }}, @json($c))'>
+                                                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                        </svg>
+                                                        Editar Cliente
+                                                    </button>
+                                                    @if($loanSt !== null && $loanSt !== 'SIN_PRESTAMO')
+                                                        <button type="button" class="meatball-item text-danger" onclick="showToast('No se puede eliminar un cliente con préstamos activos.', 'danger')">
+                                                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <polyline points="3 6 5 6 21 6"/><path stroke-linecap="round" d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
+                                                            </svg>
+                                                            Borrar Cliente
+                                                        </button>
+                                                    @else
+                                                        <form method="POST" action="{{ route('clients.destroy', ['clientId' => $cid]) }}" style="display:inline;">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="meatball-item text-danger btn-confirm" data-confirm-text="¿Confirmar borrar?">
+                                                                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                    <polyline points="3 6 5 6 21 6"/><path stroke-linecap="round" d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
+                                                                </svg>
+                                                                Borrar Cliente
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </div>
                                             </div>
-                                        </div>
                                         @endif
                                     </td>
                                 </tr>
@@ -369,121 +260,223 @@
                 </div>
             </div>
         </div>
+    </div>
 </div>
-</div>
-@endsection
 
-{{-- ══ MODAL EDITAR ══ --}}
-<div class="modal-overlay" id="editModal">
-    <div class="modal-box">
-        <div class="modal-head">
-            <h3>✏️ Editar cliente</h3>
-            <button class="modal-close" onclick="closeModal('editModal')">✕</button>
-        </div>
-        <form method="POST" id="editForm" action="" autocomplete="off">
-            @csrf @method('PATCH')
-            <div class="modal-body">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-                    <div class="field" style="grid-column:1/-1;">
-                        <label class="field-label field-required">Nombre completo</label>
-                        <input class="field-input" id="e_full_name" name="full_name" maxlength="150" required>
-                    </div>
-                    <div class="field">
-                        <label class="field-label field-required">Teléfono</label>
-                        <input class="field-input digits-only" id="e_phone" name="phone" maxlength="10" required>
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Estado civil</label>
-                        <select class="field-input field-select" id="e_marital" name="marital_status">
-                            @foreach($maritalOptions as $opt)
-                                <option value="{{ $opt }}">{{ $opt }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="field" style="grid-column:1/-1;">
-                        <label class="field-label field-required">Dirección</label>
-                        <input class="field-input" id="e_address" name="address" maxlength="255" required>
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Cónyuge</label>
-                        <input class="field-input" id="e_spouse" name="spouse_full_name" maxlength="150">
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Ocupación</label>
-                        <input class="field-input" id="e_occupation" name="occupation" maxlength="100">
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Fecha nacimiento</label>
-                        <input class="field-input" type="date" id="e_birth" name="birth_date">
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Ingreso mensual</label>
-                        <input class="field-input" type="number" step="0.01" id="e_income" name="monthly_income" min="0">
-                    </div>
-                    <div style="grid-column:1/-1;padding-top:.5rem;border-top:1px solid rgba(26,111,207,.10);margin-top:.25rem;">
-                        <div style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:.6rem;">Datos del Aval</div>
-                    </div>
-                    <div class="field">
-                        <label class="field-label field-required">Nombre aval</label>
-                        <input class="field-input" id="e_gname" name="guarantor_full_name" maxlength="150" required>
-                    </div>
-                    <div class="field">
-                        <label class="field-label field-required">Teléfono aval</label>
-                        <input class="field-input digits-only" id="e_gphone" name="guarantor_phone" maxlength="10" required>
-                    </div>
-                    <div class="field" style="grid-column:1/-1;">
-                        <label class="field-label field-required">Dirección aval</label>
-                        <input class="field-input" id="e_gaddress" name="guarantor_address" maxlength="255" required>
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Estado civil aval</label>
-                        <select class="field-input field-select" id="e_gmarital" name="guarantor_marital_status">
-                            @foreach($maritalOptions as $opt)
-                                <option value="{{ $opt }}">{{ $opt }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+{{-- ── DRAWER: REGISTRAR CLIENTE ── --}}
+<div class="drawer" id="registerClientDrawer">
+    <div class="drawer-head">
+        <h3 class="drawer-title">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+            </svg>
+            Registrar nuevo cliente
+        </h3>
+        <button class="drawer-close" onclick="closeDrawer('registerClientDrawer')">✕</button>
+    </div>
+    <form method="POST" action="{{ route('clients.store') }}" autocomplete="off">
+        @csrf
+        <div class="drawer-body">
+            <div class="form-section">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 20v-1a5 5 0 015-5h6a5 5 0 015 5v1"/>
+                </svg>
+                Datos personales
+            </div>
+
+            <div class="field">
+                <label class="field-label field-required">Nombre completo</label>
+                <input class="field-input" name="full_name" value="{{ old('full_name') }}" maxlength="150" required>
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label class="field-label field-required">Teléfono</label>
+                    <input class="field-input digits-only" name="phone" value="{{ old('phone') }}"
+                           maxlength="10" inputmode="numeric" required>
+                    <div class="field-hint">10 dígitos</div>
+                </div>
+                <div class="field">
+                    <label class="field-label field-required">Estado civil</label>
+                    <select class="field-input field-select" name="marital_status" required>
+                        <option value="">— Seleccionar —</option>
+                        @foreach($maritalOptions as $op)
+                            <option value="{{ $op }}" @selected(old('marital_status') === $op)>{{ $op }}</option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-ghost" onclick="closeModal('editModal')">Cancelar</button>
-                <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
+
+            <div class="field">
+                <label class="field-label field-required">Dirección</label>
+                <input class="field-input" name="address" value="{{ old('address') }}" maxlength="255" required>
             </div>
-        </form>
-    </div>
+
+            <div class="field">
+                <label class="field-label">Nombre del cónyuge</label>
+                <input class="field-input" name="spouse_full_name" value="{{ old('spouse_full_name') }}" maxlength="150">
+            </div>
+
+            <div class="grid-3">
+                <div class="field">
+                    <label class="field-label">Fecha nacimiento</label>
+                    <input class="field-input" type="date" name="birth_date" value="{{ old('birth_date') }}" max="{{ date('Y-m-d', strtotime('-18 years')) }}">
+                </div>
+                <div class="field">
+                    <label class="field-label">Ocupación</label>
+                    <input class="field-input" name="occupation" value="{{ old('occupation') }}" maxlength="100">
+                </div>
+                <div class="field">
+                    <label class="field-label">Ingreso mensual</label>
+                    <input class="field-input" type="number" name="monthly_income" value="{{ old('monthly_income') }}" min="0" step="100">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                Datos del AVAL (obligatorio)
+            </div>
+
+            <div class="field">
+                <label class="field-label field-required">Nombre completo del aval</label>
+                <input class="field-input" name="guarantor_full_name" value="{{ old('guarantor_full_name') }}" maxlength="150" required>
+            </div>
+
+            <div class="field">
+                <label class="field-label field-required">Dirección del aval</label>
+                <input class="field-input" name="guarantor_address" value="{{ old('guarantor_address') }}" maxlength="255" required>
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label class="field-label field-required">Teléfono del aval</label>
+                    <input class="field-input digits-only" name="guarantor_phone" value="{{ old('guarantor_phone') }}"
+                           maxlength="10" inputmode="numeric" required>
+                </div>
+                <div class="field">
+                    <label class="field-label field-required">Estado civil del aval</label>
+                    <select class="field-input field-select" name="guarantor_marital_status" required>
+                        <option value="">— Seleccionar —</option>
+                        @foreach($maritalOptions as $op)
+                            <option value="{{ $op }}" @selected(old('guarantor_marital_status') === $op)>{{ $op }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="drawer-foot">
+            <button type="button" class="btn btn-ghost" onclick="closeDrawer('registerClientDrawer')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Registrar cliente</button>
+        </div>
+    </form>
 </div>
 
-{{-- ══ MODAL ELIMINAR ══ --}}
-<div class="modal-overlay modal-danger" id="deleteModal">
-    <div class="modal-box" style="max-width:420px;">
-        <div class="modal-head">
-            <h3>🗑️ Eliminar cliente</h3>
-            <button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
-        </div>
-        <div class="modal-body">
-            <p style="font-size:.95rem;margin-bottom:.85rem;">¿Eliminar a <strong id="delName"></strong>?</p>
-            <div id="delLoanWarn" style="display:none;background:rgba(224,58,58,.07);border:1px solid rgba(224,58,58,.25);border-radius:10px;padding:.85rem 1rem;font-size:.88rem;color:var(--red);">
-                ⚠️ <strong>Este cliente tiene préstamos.</strong><br>No se puede eliminar, solo editar sus datos.
-            </div>
-            <div id="delConfirmMsg" style="font-size:.88rem;color:var(--muted);">Esta acción es irreversible. Se eliminará el cliente y su aval.</div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-ghost" onclick="closeModal('deleteModal')">Cancelar</button>
-            <form id="deleteForm" method="POST" action="" style="display:inline;">
-                @csrf @method('DELETE')
-                <button type="submit" id="delBtn" class="btn" style="background:var(--red);color:#fff;">Eliminar definitivamente</button>
-            </form>
-        </div>
+{{-- ── DRAWER: EDITAR CLIENTE ── --}}
+<div class="drawer" id="editClientDrawer">
+    <div class="drawer-head">
+        <h3 class="drawer-title">✏️ Editar cliente</h3>
+        <button class="drawer-close" onclick="closeDrawer('editClientDrawer')">✕</button>
     </div>
+    <form method="POST" id="editForm" action="" autocomplete="off">
+        @csrf @method('PATCH')
+        <div class="drawer-body">
+            <div class="form-section">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 20v-1a5 5 0 015-5h6a5 5 0 015 5v1"/>
+                </svg>
+                Datos personales
+            </div>
+
+            <div class="field">
+                <label class="field-label field-required">Nombre completo</label>
+                <input class="field-input" id="e_full_name" name="full_name" maxlength="150" required>
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label class="field-label field-required">Teléfono</label>
+                    <input class="field-input digits-only" id="e_phone" name="phone" maxlength="10" required>
+                </div>
+                <div class="field">
+                    <label class="field-label field-required">Estado civil</label>
+                    <select class="field-input field-select" id="e_marital" name="marital_status" required>
+                        @foreach($maritalOptions as $opt)
+                            <option value="{{ $opt }}">{{ $opt }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="field-label field-required">Dirección</label>
+                <input class="field-input" id="e_address" name="address" maxlength="255" required>
+            </div>
+
+            <div class="grid-3">
+                <div class="field">
+                    <label class="field-label">Cónyuge</label>
+                    <input class="field-input" id="e_spouse" name="spouse_full_name" maxlength="150">
+                </div>
+                <div class="field">
+                    <label class="field-label">Ocupación</label>
+                    <input class="field-input" id="e_occupation" name="occupation" maxlength="100">
+                </div>
+                <div class="field">
+                    <label class="field-label">Fecha nacimiento</label>
+                    <input class="field-input" type="date" id="e_birth" name="birth_date">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="field-label">Ingreso mensual</label>
+                <input class="field-input" type="number" step="0.01" id="e_income" name="monthly_income" min="0">
+            </div>
+
+            <div class="form-section">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                Datos del AVAL
+            </div>
+
+            <div class="field">
+                <label class="field-label field-required">Nombre completo del aval</label>
+                <input class="field-input" id="e_gname" name="guarantor_full_name" maxlength="150" required>
+            </div>
+
+            <div class="field">
+                <label class="field-label field-required">Dirección del aval</label>
+                <input class="field-input" id="e_gaddress" name="guarantor_address" maxlength="255" required>
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label class="field-label field-required">Teléfono del aval</label>
+                    <input class="field-input digits-only" id="e_gphone" name="guarantor_phone" maxlength="10" required>
+                </div>
+                <div class="field">
+                    <label class="field-label field-required">Estado civil del aval</label>
+                    <select class="field-input field-select" id="e_gmarital" name="guarantor_marital_status" required>
+                        @foreach($maritalOptions as $opt)
+                            <option value="{{ $opt }}">{{ $opt }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="drawer-foot">
+            <button type="button" class="btn btn-ghost" onclick="closeDrawer('editClientDrawer')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
+        </div>
+    </form>
 </div>
+
+@endsection
 
 @push('scripts')
 <script>
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-function openModal(id){ document.getElementById(id).classList.add('open'); }
-document.querySelectorAll('.modal-overlay').forEach(function(el){
-    el.addEventListener('click', function(e){ if(e.target===this) closeModal(this.id); });
-});
 function openEdit(id, data){
     document.getElementById('editForm').action = '/clients/' + id;
     document.getElementById('e_full_name').value  = data.full_name   || '';
@@ -493,34 +486,68 @@ function openEdit(id, data){
     document.getElementById('e_occupation').value = data.occupation  || '';
     document.getElementById('e_birth').value      = data.birth_date  || '';
     document.getElementById('e_income').value     = data.monthly_income != null ? data.monthly_income : '';
+    
     var ms = document.getElementById('e_marital');
-    for(var i=0;i<ms.options.length;i++) ms.options[i].selected = ms.options[i].value===(data.marital_status||'');
+    for(var i=0; i<ms.options.length; i++) {
+        ms.options[i].selected = ms.options[i].value === (data.marital_status || '');
+    }
+    
     var g = data.guarantor || {};
     document.getElementById('e_gname').value    = g.full_name    || '';
     document.getElementById('e_gphone').value   = g.phone        || '';
     document.getElementById('e_gaddress').value = g.address      || '';
+    
     var gm = document.getElementById('e_gmarital');
-    for(var i=0;i<gm.options.length;i++) gm.options[i].selected = gm.options[i].value===(g.marital_status||'');
-    openModal('editModal');
+    for(var i=0; i<gm.options.length; i++) {
+        gm.options[i].selected = gm.options[i].value === (g.marital_status || '');
+    }
+    
+    openDrawer('editClientDrawer');
 }
-function openDelete(id, name, hasLoans){
-    document.getElementById('delName').textContent         = name;
-    document.getElementById('delLoanWarn').style.display   = hasLoans ? 'block' : 'none';
-    document.getElementById('delConfirmMsg').style.display = hasLoans ? 'none'  : 'block';
-    document.getElementById('delBtn').style.display        = hasLoans ? 'none'  : '';
-    document.getElementById('deleteForm').action = '/clients/' + id;
-    openModal('deleteModal');
-}
+
+// Digits-only phone restriction
 document.querySelectorAll('.digits-only').forEach(function(el){
     el.addEventListener('input', function(){ this.value = this.value.replace(/\D/g,'').slice(0,10); });
 });
-var si   = document.getElementById('clientSearch');
-var rows = document.querySelectorAll('#clientsTable tbody tr[data-name]');
-if(si){
-    si.addEventListener('input', function(){
-        var q = this.value.toLowerCase().trim();
-        rows.forEach(function(row){ row.style.display = (!q || row.getAttribute('data-name').includes(q)) ? '' : 'none'; });
+
+// Collapsible advanced filters
+function toggleFilters() {
+    const filters = document.getElementById('collapsibleFilters');
+    const btn = document.getElementById('filterToggleBtn');
+    if (filters && btn) {
+        filters.classList.toggle('show');
+        btn.classList.toggle('active');
+    }
+}
+
+// Global filter client-side logic
+function filterClients() {
+    const q = document.getElementById('clientSearch').value.toLowerCase().trim();
+    const loanSt = document.getElementById('filterLoanStatus').value;
+    const collector = document.getElementById('filterCollector').value;
+    const marital = document.getElementById('filterMarital').value;
+    
+    const rows = document.querySelectorAll('#clientsTable tbody tr[data-name]');
+    let count = 0;
+    
+    rows.forEach(function(row) {
+        const nameMatch = !q || row.getAttribute('data-name').includes(q);
+        const loanMatch = !loanSt || row.getAttribute('data-loan-status') === loanSt;
+        const collectorMatch = !collector || row.getAttribute('data-collector-id') === collector;
+        const maritalMatch = !marital || row.getAttribute('data-marital-status') === marital;
+        
+        if (nameMatch && loanMatch && collectorMatch && maritalMatch) {
+            row.style.display = '';
+            count++;
+        } else {
+            row.style.display = 'none';
+        }
     });
+    
+    const countDisplay = document.getElementById('clientsCountText');
+    if (countDisplay) {
+        countDisplay.textContent = `${count} cliente(s)`;
+    }
 }
 </script>
 @endpush

@@ -38,6 +38,9 @@ def next_due_date(start: date, frequency: LoanFrequency, installment_number: int
     if frequency == LoanFrequency.BIWEEKLY:
         return start + timedelta(days=14 * (installment_number - 1))
 
+    if frequency == LoanFrequency.YEARLY:
+        return start + relativedelta(years=(installment_number - 1))
+
     # MONTHLY: sumar meses reales (no 30 días)
     return start + relativedelta(months=(installment_number - 1))
 

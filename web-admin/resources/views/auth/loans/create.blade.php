@@ -32,7 +32,7 @@
     border-radius: 8px; padding: .6rem .9rem; margin-top: .6rem;
     font-size: .80rem; color: #ffd580; display: none;
 }
-.freq-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .6rem; }
+.freq-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: .6rem; }
 .freq-btn {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem;
     padding: .75rem .5rem; border-radius: 10px; cursor: pointer;
@@ -62,6 +62,12 @@
     background: rgba(255,213,128,.08); border: 1px solid rgba(255,213,128,.25);
     border-radius: 10px; padding: .9rem 1rem; margin-top: .75rem;
 }
+/* Rate select styling */
+.rate-select {
+    appearance: none; -webkit-appearance: none;
+    background: #fafcff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' viewBox='0 0 24 24' stroke='%236b7280' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") right 12px center no-repeat;
+    padding-right: 2.5rem;
+}
 </style>
 @endpush
 
@@ -77,7 +83,7 @@
             Nuevo
         </div>
         <h1 class="page-title">Nuevo Préstamo</h1>
-        <p class="page-sub">Capital + Interés fijo pactado · Cuota semanal, quincenal o mensual</p>
+        <p class="page-sub">Capital + Tabla de Tasas Oficial · Interés congelado a 16 semanas</p>
     </div>
     <a href="{{ route('loans.index') }}" class="btn btn-ghost">← Volver</a>
 </div>
@@ -125,17 +131,56 @@
                         <label class="field-label field-required">Capital prestado ($)</label>
                         <input class="field-input" id="principal" name="principal_amount"
                                type="number" min="1" step="1"
-                               placeholder="Ej: 30000"
                                value="{{ old('principal_amount') }}" required>
                         <div class="field-hint">Dinero que se entrega al cliente</div>
                     </div>
                     <div class="field">
-                        <label class="field-label field-required">Interés pactado ($)</label>
-                        <input class="field-input" id="interestAmt" name="interest_amount"
-                               type="number" min="0" step="1"
-                               placeholder="Ej: 6480"
-                               value="{{ old('interest_amount') }}" required>
-                        <div class="field-hint">Monto fijo de interés acordado</div>
+                        <label class="field-label field-required">Tasa de interés (%)</label>
+                        <select class="field-input field-select rate-select" id="interestRate" name="interest_rate" required>
+                            <option value="">— Seleccionar tasa —</option>
+                            <option value="3.50" {{ old('interest_rate')=='3.50'?'selected':'' }}>3.50% — $71.25/mil</option>
+                            <option value="3.60" {{ old('interest_rate')=='3.60'?'selected':'' }}>3.60% — $71.50/mil</option>
+                            <option value="3.70" {{ old('interest_rate')=='3.70'?'selected':'' }}>3.70% — $71.75/mil</option>
+                            <option value="3.80" {{ old('interest_rate')=='3.80'?'selected':'' }}>3.80% — $72.00/mil</option>
+                            <option value="3.90" {{ old('interest_rate')=='3.90'?'selected':'' }}>3.90% — $72.25/mil</option>
+                            <option value="4.00" {{ old('interest_rate')=='4.00'?'selected':'' }}>4.00% — $72.50/mil</option>
+                            <option value="4.10" {{ old('interest_rate')=='4.10'?'selected':'' }}>4.10% — $72.75/mil</option>
+                            <option value="4.20" {{ old('interest_rate')=='4.20'?'selected':'' }}>4.20% — $73.00/mil</option>
+                            <option value="4.30" {{ old('interest_rate')=='4.30'?'selected':'' }}>4.30% — $73.25/mil</option>
+                            <option value="4.40" {{ old('interest_rate')=='4.40'?'selected':'' }}>4.40% — $73.50/mil</option>
+                            <option value="4.50" {{ old('interest_rate')=='4.50'?'selected':'' }}>4.50% — $73.75/mil</option>
+                            <option value="4.60" {{ old('interest_rate')=='4.60'?'selected':'' }}>4.60% — $74.00/mil</option>
+                            <option value="4.70" {{ old('interest_rate')=='4.70'?'selected':'' }}>4.70% — $74.25/mil</option>
+                            <option value="4.80" {{ old('interest_rate')=='4.80'?'selected':'' }}>4.80% — $74.50/mil</option>
+                            <option value="4.90" {{ old('interest_rate')=='4.90'?'selected':'' }}>4.90% — $74.75/mil</option>
+                            <option value="5.00" {{ old('interest_rate')=='5.00'?'selected':'' }}>5.00% — $75.00/mil</option>
+                            <option value="5.10" {{ old('interest_rate')=='5.10'?'selected':'' }}>5.10% — $75.25/mil</option>
+                            <option value="5.20" {{ old('interest_rate')=='5.20'?'selected':'' }}>5.20% — $75.50/mil</option>
+                            <option value="5.30" {{ old('interest_rate')=='5.30'?'selected':'' }}>5.30% — $75.75/mil</option>
+                            <option value="5.40" {{ old('interest_rate')=='5.40'?'selected':'' }}>5.40% — $76.00/mil</option>
+                            <option value="5.50" {{ old('interest_rate')=='5.50'?'selected':'' }}>5.50% — $76.25/mil</option>
+                            <option value="5.60" {{ old('interest_rate')=='5.60'?'selected':'' }}>5.60% — $76.50/mil</option>
+                            <option value="5.70" {{ old('interest_rate')=='5.70'?'selected':'' }}>5.70% — $76.75/mil</option>
+                            <option value="5.80" {{ old('interest_rate')=='5.80'?'selected':'' }}>5.80% — $77.00/mil</option>
+                            <option value="5.90" {{ old('interest_rate')=='5.90'?'selected':'' }}>5.90% — $77.25/mil</option>
+                            <option value="6.00" {{ old('interest_rate')=='6.00'?'selected':'' }}>6.00% — $77.50/mil</option>
+                            <option value="6.10" {{ old('interest_rate')=='6.10'?'selected':'' }}>6.10% — $77.75/mil</option>
+                            <option value="6.20" {{ old('interest_rate')=='6.20'?'selected':'' }}>6.20% — $78.00/mil</option>
+                            <option value="6.30" {{ old('interest_rate')=='6.30'?'selected':'' }}>6.30% — $78.25/mil</option>
+                            <option value="6.40" {{ old('interest_rate')=='6.40'?'selected':'' }}>6.40% — $78.50/mil</option>
+                            <option value="6.50" {{ old('interest_rate')=='6.50'?'selected':'' }}>6.50% — $78.75/mil</option>
+                            <option value="6.60" {{ old('interest_rate')=='6.60'?'selected':'' }}>6.60% — $79.00/mil</option>
+                            <option value="6.70" {{ old('interest_rate')=='6.70'?'selected':'' }}>6.70% — $79.25/mil</option>
+                            <option value="6.80" {{ old('interest_rate')=='6.80'?'selected':'' }}>6.80% — $79.50/mil</option>
+                            <option value="6.90" {{ old('interest_rate')=='6.90'?'selected':'' }}>6.90% — $79.75/mil</option>
+                            <option value="7.00" {{ old('interest_rate')=='7.00'?'selected':'' }}>7.00% — $80.00/mil</option>
+                            <option value="7.10" {{ old('interest_rate')=='7.10'?'selected':'' }}>7.10% — $80.25/mil</option>
+                            <option value="7.20" {{ old('interest_rate')=='7.20'?'selected':'' }}>7.20% — $80.50/mil</option>
+                            <option value="7.30" {{ old('interest_rate')=='7.30'?'selected':'' }}>7.30% — $80.75/mil</option>
+                            <option value="7.40" {{ old('interest_rate')=='7.40'?'selected':'' }}>7.40% — $81.00/mil</option>
+                            <option value="7.50" {{ old('interest_rate')=='7.50'?'selected':'' }}>7.50% — $81.25/mil</option>
+                        </select>
+                        <div class="field-hint">Tabla oficial de tasas autorizadas</div>
                     </div>
                 </div>
 
@@ -174,6 +219,13 @@
                             </svg>
                             Mensual
                         </label>
+                        <label class="freq-btn {{ old('frequency')==='YEARLY' ? 'sel' : '' }}" id="fb-YEARLY">
+                            <input type="radio" name="frequency" value="YEARLY" style="display:none;" {{ old('frequency')==='YEARLY' ? 'checked' : '' }}>
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            Anual
+                        </label>
                     </div>
                     <div class="field-hint" id="freqHint">Selecciona una frecuencia.</div>
                 </div>
@@ -182,8 +234,7 @@
                     <div class="field">
                         <label class="field-label field-required">Número de pagos</label>
                         <input class="field-input" id="numPays" name="payments_count"
-                               type="number" min="4" max="104"
-                               placeholder="Ej: 16"
+                               type="number" min="1" max="104"
                                value="{{ old('payments_count') }}" required>
                         <div class="field-hint" id="numPayHint">Mín. 4 · Máx. 104</div>
                     </div>
@@ -208,7 +259,7 @@
                            placeholder="Dejar vacío = usar cuota calculada automáticamente"
                            value="{{ old('payment_amount_override') }}">
                     <div class="field-hint" style="margin-top:.35rem;">
-                        Ejemplo: el cálculo da $2,280 pero se cobra $2,300. Todos los pagos serán esa cuota exacta.
+                        Establece una cuota fija manual para todos los pagos (todos los pagos serán esa cuota exacta).
                     </div>
                 </div>
 
@@ -242,19 +293,23 @@
                     <span class="calc-val" id="rc-principal">$0</span>
                 </div>
                 <div class="calc-row">
-                    <span class="calc-lbl">📈 Interés pactado</span>
-                    <span class="calc-val" id="rc-interest">$0</span>
-                </div>
-                <div class="calc-row sep">
-                    <span class="calc-lbl">TOTAL PROGRAMADO</span>
-                    <span class="calc-val" id="rc-total">$0</span>
+                    <span class="calc-lbl">📊 Tasa / Factor</span>
+                    <span class="calc-val" id="rc-rate" style="font-size:.9rem;">—</span>
                 </div>
                 <div class="calc-row">
-                    <span class="calc-lbl">🔢 Cuota calculada (<span id="rc-n">0</span> pagos)</span>
-                    <span class="calc-val" id="rc-cuota-calc" style="color:rgba(255,255,255,.6);">$0</span>
+                    <span class="calc-lbl">🧮 Pago base (16 sem)</span>
+                    <span class="calc-val" id="rc-base16" style="color:rgba(255,255,255,.7);">—</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-lbl">📈 Interés generado</span>
+                    <span class="calc-val" id="rc-interest" style="color:rgba(255,255,255,.7);">—</span>
+                </div>
+                <div class="calc-row sep">
+                    <span class="calc-lbl">TOTAL CONGELADO</span>
+                    <span class="calc-val" id="rc-total">$0</span>
                 </div>
                 <div class="calc-row cuota">
-                    <span class="calc-lbl">💳 Cuota de cobro</span>
+                    <span class="calc-lbl">💳 Cuota (<span id="rc-n">0</span> pagos)</span>
                     <span class="calc-val" id="rc-cuota">$0</span>
                 </div>
                 <div class="calc-row dur">
@@ -277,7 +332,7 @@
                     <div class="sch-list" id="schList">
                         <div class="sch-item" style="color:rgba(255,255,255,.5);font-style:italic;">
                             <span></span>
-                            <span>Ingresa capital e interés...</span>
+                            <span>Selecciona capital y tasa...</span>
                             <span></span>
                         </div>
                     </div>
@@ -293,8 +348,21 @@
 @push('scripts')
 <script>
 (function(){
+    // ── Tabla de Tasas Oficial (embebida) ──
+    var TABLA = {
+        "3.50":71.25, "3.60":71.50, "3.70":71.75, "3.80":72.00, "3.90":72.25,
+        "4.00":72.50, "4.10":72.75, "4.20":73.00, "4.30":73.25, "4.40":73.50,
+        "4.50":73.75, "4.60":74.00, "4.70":74.25, "4.80":74.50, "4.90":74.75,
+        "5.00":75.00, "5.10":75.25, "5.20":75.50, "5.30":75.75, "5.40":76.00,
+        "5.50":76.25, "5.60":76.50, "5.70":76.75, "5.80":77.00, "5.90":77.25,
+        "6.00":77.50, "6.10":77.75, "6.20":78.00, "6.30":78.25, "6.40":78.50,
+        "6.50":78.75, "6.60":79.00, "6.70":79.25, "6.80":79.50, "6.90":79.75,
+        "7.00":80.00, "7.10":80.25, "7.20":80.50, "7.30":80.75, "7.40":81.00,
+        "7.50":81.25
+    };
+
     var principal    = document.getElementById('principal');
-    var interestAmt  = document.getElementById('interestAmt');
+    var interestRate = document.getElementById('interestRate');
     var numPays      = document.getElementById('numPays');
     var startDate    = document.getElementById('startDate');
     var payOverride  = document.getElementById('payOverride');
@@ -304,9 +372,10 @@
     var numPayHint   = document.getElementById('numPayHint');
 
     var rcPrincipal  = document.getElementById('rc-principal');
+    var rcRate       = document.getElementById('rc-rate');
+    var rcBase16     = document.getElementById('rc-base16');
     var rcInterest   = document.getElementById('rc-interest');
     var rcTotal      = document.getElementById('rc-total');
-    var rcCuotaCalc  = document.getElementById('rc-cuota-calc');
     var rcCuota      = document.getElementById('rc-cuota');
     var rcN          = document.getElementById('rc-n');
     var rcDur        = document.getElementById('rc-dur');
@@ -327,6 +396,7 @@
         var d = new Date(startStr + 'T12:00:00');
         if(freq === 'WEEKLY')   { d.setDate(d.getDate() + 7*(n-1)); return d; }
         if(freq === 'BIWEEKLY') { d.setDate(d.getDate() + 14*(n-1)); return d; }
+        if(freq === 'YEARLY')   { d.setFullYear(d.getFullYear() + (n-1)); return d; }
         d.setMonth(d.getMonth() + (n-1)); return d;
     }
 
@@ -338,6 +408,7 @@
     function durText(freq, n){
         if(freq==='WEEKLY')   return (n/4).toFixed(1).replace('.0','') + ' mes(es) · ' + n + ' semanas';
         if(freq==='BIWEEKLY') return (n/2).toFixed(1).replace('.0','') + ' mes(es) · ' + n + ' quincenas';
+        if(freq==='YEARLY')   return n + ' año(s)';
         return n + ' mes(es)';
     }
 
@@ -345,31 +416,45 @@
         WEEKLY:   'Semanal · Mín. 16 semanas (4 meses) · Máx. 104',
         BIWEEKLY: 'Quincenal · Mín. 8 pagos (4 meses) · Máx. 52',
         MONTHLY:  'Mensual · Mín. 4 meses · Máx. 24',
+        YEARLY:   'Anual · Mín. 1 año · Máx. 10',
     };
-    var minPays = { WEEKLY:16, BIWEEKLY:8, MONTHLY:4 };
-    var maxPays = { WEEKLY:104, BIWEEKLY:52, MONTHLY:24 };
+    var minPays = { WEEKLY:16, BIWEEKLY:8, MONTHLY:4, YEARLY:1 };
+    var maxPays = { WEEKLY:104, BIWEEKLY:52, MONTHLY:24, YEARLY:10 };
 
     function calc(){
-        var p  = parseFloat(principal.value)   || 0;
-        var ia = parseFloat(interestAmt.value) || 0;
-        var n  = parseInt(numPays.value)       || 0;
-        var sd = startDate.value;
-        var ov = parseFloat(payOverride.value) || 0;
+        var p    = parseFloat(principal.value)   || 0;
+        var rate = interestRate.value;            // string key like "5.40"
+        var n    = parseInt(numPays.value)       || 0;
+        var sd   = startDate.value;
+        var ov   = parseFloat(payOverride.value) || 0;
         var freq = getFreq();
 
-        var total = p + ia;
-        var cuotaCalc = n > 0 ? Math.ceil(total / n) : 0;
-        var cuota = ov > 0 ? ov : cuotaCalc;
-        var totalCobrado = cuota * n;
+        var factor = TABLA[rate] || 0;
 
+        // ── Algoritmo Tabla de Tasas ──
+        // 1. pago_base_16 = (capital / 1000) × factor
+        // 2. total_congelado = pago_base_16 × 16
+        // 3. interés = total - capital
+        // 4. cuota = total / n_pagos
+        var miles = p / 1000;
+        var pagoBase16 = miles * factor;
+        var total = pagoBase16 * 16;
+        var interes = total - p;
+        var cuota = n > 0 ? total / n : 0;
+        var cuotaCobro = ov > 0 ? ov : cuota;
+        var totalCobrado = cuotaCobro * n;
+
+        // ── Actualizar panel ──
         rcPrincipal.textContent = p > 0 ? fmt(p) : '—';
-        rcInterest.textContent  = ia > 0 ? fmt(ia) : '—';
-        rcTotal.textContent     = total > 0 ? fmt(total) : '—';
-        rcCuotaCalc.textContent = (n > 0 && total > 0) ? fmt(cuotaCalc) : '—';
-        rcCuota.textContent     = (n > 0 && total > 0) ? fmt(cuota) : '—';
+        rcRate.textContent      = factor > 0 ? rate + '% → $' + factor.toFixed(2) + '/mil' : '—';
+        rcBase16.textContent    = (p > 0 && factor > 0) ? fmt2(pagoBase16) + ' × 16 sem' : '—';
+        rcInterest.textContent  = (p > 0 && factor > 0) ? fmt(interes) : '—';
+        rcTotal.textContent     = (p > 0 && factor > 0) ? fmt(total) : '—';
+        rcCuota.textContent     = (n > 0 && total > 0) ? fmt2(cuotaCobro) : '—';
         rcN.textContent         = n > 0 ? n : '—';
         rcDur.textContent       = (n > 0 && p > 0) ? durText(freq, n) : '—';
 
+        // Ajuste de fondo (override)
         if(n > 0 && p > 0 && ov > 0 && Math.abs(totalCobrado - total) > 0.01){
             rcDiffRow.style.display = 'flex';
             var diff = totalCobrado - total;
@@ -379,14 +464,16 @@
         }
         rcAlert.style.display = 'none';
 
-        if(n > 0 && p > 0 && sd){
+        // ── Preview de cuotas ──
+        if(n > 0 && p > 0 && factor > 0 && sd){
             var html = '';
             for(var i=1;i<=n;i++){
                 var due = nextDate(sd, freq, i);
                 var amt;
                 if(ov > 0){
-                    amt = cuota;
+                    amt = cuotaCobro;
                 } else {
+                    // última cuota ajusta diferencia
                     amt = (i === n) ? (total - cuota * (n - 1)) : cuota;
                 }
                 var isLast    = (i === n);
@@ -401,7 +488,7 @@
             }
             schList.innerHTML = html;
         } else {
-            schList.innerHTML = '<div class="sch-item" style="color:rgba(255,255,255,.45);font-style:italic;"><span></span><span>Ingresa capital e interés...</span><span></span></div>';
+            schList.innerHTML = '<div class="sch-item" style="color:rgba(255,255,255,.45);font-style:italic;"><span></span><span>Selecciona capital y tasa...</span><span></span></div>';
         }
     }
 
@@ -423,9 +510,23 @@
         });
     });
 
-    [principal, interestAmt, numPays, startDate, payOverride].forEach(function(el){
+    [principal, interestRate, numPays, startDate, payOverride].forEach(function(el){
         if(el) el.addEventListener('input', calc);
+        if(el) el.addEventListener('change', calc);
     });
+
+    // Trigger initial state sync for the selected frequency
+    var initialSel = document.querySelector('.freq-btn.sel');
+    if(initialSel) {
+        var inp = initialSel.querySelector('input[type="radio"]');
+        if(inp) {
+            var f = inp.value;
+            freqHint.textContent = hints[f] || '';
+            numPayHint.textContent = 'Mín. ' + minPays[f] + ' · Máx. ' + maxPays[f];
+            numPays.min = minPays[f];
+            numPays.max = maxPays[f];
+        }
+    }
 
     calc();
 })();

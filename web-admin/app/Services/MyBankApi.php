@@ -81,10 +81,12 @@ class MyBankApi
 
     public function refresh(string $refreshToken): array
     {
+        // ✅ El endpoint /auth/refresh espera el token en el BODY como JSON
         $response = Http::acceptJson()
             ->timeout(15)
-            ->withToken($refreshToken)
-            ->post($this->baseUrl . '/auth/refresh');
+            ->post($this->baseUrl . '/auth/refresh', [
+                'refresh_token' => $refreshToken,
+            ]);
 
         return $this->ok($response);
     }

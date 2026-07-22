@@ -115,6 +115,17 @@ class ClientUpdate(BaseModel):
         return v
 
 
+class GuarantorOut(BaseModel):
+    id: int
+    full_name: str
+    phone: str | None = None
+    address: str | None = None
+    marital_status: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
 class ClientOut(BaseModel):
     id: int
     client_number: str
@@ -128,6 +139,8 @@ class ClientOut(BaseModel):
     birth_date: date | None = None
     occupation: str | None = None
     monthly_income: Decimal | None = None
+
+    guarantor: GuarantorOut | None = None
 
     created_at: datetime
     updated_at: datetime

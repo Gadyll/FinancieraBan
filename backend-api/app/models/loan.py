@@ -14,6 +14,7 @@ class LoanFrequency(str, Enum):
     WEEKLY   = "WEEKLY"     # Semanal
     BIWEEKLY = "BIWEEKLY"  # Quincenal
     MONTHLY  = "MONTHLY"   # Mensual
+    YEARLY   = "YEARLY"    # Anual
 
 
 class LoanStatus(str, Enum):

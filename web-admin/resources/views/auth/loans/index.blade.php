@@ -118,18 +118,18 @@
             <table class="tbl" id="loansTable">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th style="width: 70px;">ID</th>
                         <th>Cliente</th>
-                        <th>Ciclo</th>
-                        <th class="text-right">Capital</th>
-                        <th class="text-right">+ Interés</th>
-                        <th class="text-right">= Total</th>
-                        <th>Cuota</th>
-                        <th>Pagos</th>
-                        <th>Frecuencia</th>
-                        <th>Estado</th>
-                        <th>Inicio</th>
-                        <th></th>
+                        <th style="text-align: center; width: 60px;">Ciclo</th>
+                        <th class="cell-right">Capital</th>
+                        <th class="cell-right">+ Interés</th>
+                        <th class="cell-right">= Total</th>
+                        <th class="cell-right">Cuota</th>
+                        <th style="text-align: center; width: 70px;">Pagos</th>
+                        <th style="width: 100px;">Frecuencia</th>
+                        <th style="width: 110px;">Estado</th>
+                        <th style="width: 100px;">Inicio</th>
+                        <th style="width: 80px;"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -161,14 +161,14 @@
                                 <span class="badge badge-gray">C{{ $loan['cycle_number'] ?? '?' }}</span>
                             </td>
                             <td class="cell-right cell-muted">${{ number_format((float)($loan['principal_amount']??0),0) }}</td>
-                            <td class="cell-right" style="color:var(--blue);">${{ number_format($interestAmt,0) }}</td>
-                            <td class="cell-right"><strong style="font-size:1rem;">${{ number_format((float)($loan['total_amount']??0),0) }}</strong></td>
+                            <td class="cell-right" style="color:var(--blue); font-weight:700;">${{ number_format($interestAmt,0) }}</td>
+                            <td class="cell-right cell-money"><strong>${{ number_format((float)($loan['total_amount']??0),0) }}</strong></td>
                             <td class="cell-right cell-money text-teal">${{ number_format((float)($loan['payment_amount']??0),0) }}</td>
                             <td style="text-align:center;"><span class="badge badge-gray cnt">{{ $loan['payments_count']??'—' }}</span></td>
                             <td><span class="freq {{ $freqCls }}">{{ $freqLbl }}</span></td>
                             <td>
                                 <span class="badge {{ $badge }}">
-                                    <span class="badge-dot" style="background:currentColor;opacity:.7;"></span>
+                                    <span class="badge-dot"></span>
                                     {{ $label }}
                                 </span>
                             </td>
