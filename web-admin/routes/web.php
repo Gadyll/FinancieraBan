@@ -31,6 +31,7 @@ Route::middleware(['mybank.auth', 'mybank.admin'])->group(function () {
     // Clientes
     Route::get('/clients',                    [ClientsController::class, 'index'])->name('clients.index');
     Route::post('/clients',                   [ClientsController::class, 'store'])->name('clients.store');
+    Route::get('/clients/{clientId}',         [ClientsController::class, 'show'])->name('clients.show');
     Route::patch('/clients/{clientId}',       [ClientsController::class, 'update'])->name('clients.update');
     Route::delete('/clients/{clientId}',      [ClientsController::class, 'destroy'])->name('clients.destroy');
     Route::post('/clients/{clientId}/assign', [ClientsController::class, 'assign'])->name('clients.assign');

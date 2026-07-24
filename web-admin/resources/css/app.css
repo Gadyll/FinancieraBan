@@ -528,68 +528,199 @@ table.tbl {
 .btn-full { width: 100%; justify-content: center; }
 
 /* ══════════════════════════════════════════════════════════
-   FORMS
+   GLOBAL FORM COLOR RESET
+   Garantiza texto oscuro en TODOS los inputs del sistema,
+   independientemente de la clase aplicada.
 ══════════════════════════════════════════════════════════ */
-.field { margin-bottom: .9rem; }
-.field-label {
-  display: block; font-weight: 700; font-size: .85rem;
-  color: var(--text-2); margin-bottom: .4rem;
-}
-.field-required::after { content: ' *'; color: var(--red); }
-
-.field-input, .field-select {
-  width: 100%; padding: .72rem 1rem;
-  border: 1.5px solid rgba(26,111,207,.18);
-  border-radius: var(--radius-sm);
-  background: #fafcff;
-  font-family: 'Outfit', sans-serif; font-size: .95rem;
-  color: #0d1b2e !important; /* Forzar color de texto oscuro */
-  outline: none; transition: .15s;
-}
-
-.field-input:focus, .field-select:focus {
-  background: #fff;
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(26,111,207,.12);
+input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="tel"],
+input[type="search"],
+input[type="url"],
+input[type="time"],
+select,
+textarea {
+  color: #0d1b2e;
+  -webkit-text-fill-color: #0d1b2e;
+  font-family: 'Outfit', system-ui, sans-serif;
 }
 
-.field-input::placeholder {
-  color: #6b7e96 !important; /* Placeholder más legible */
-}
-
-/* Evitar texto blanco en autocompletado (Autofill) */
-.field-input:-webkit-autofill,
-.field-select:-webkit-autofill,
-.field-input:-webkit-autofill:hover, 
-.field-input:-webkit-autofill:focus,
-.field-select:-webkit-autofill:hover,
-.field-select:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 100px #fafcff inset !important;
+/* Autofill global — evita fondo azul del navegador */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+select:-webkit-autofill,
+textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #fafcff inset !important;
   -webkit-text-fill-color: #0d1b2e !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Forzar color en inputs de fecha */
+/* ══════════════════════════════════════════════════════════
+   FORMS — Sistema de campos
+══════════════════════════════════════════════════════════ */
+.field { margin-bottom: .9rem; }
+.field-label {
+  display: block; font-weight: 700; font-size: .84rem;
+  color: var(--text-2); margin-bottom: .42rem;
+  letter-spacing: .01em;
+}
+.field-required::after { content: ' *'; color: var(--red); }
+
+/* Input y Select con clase field-input / field-select */
+.field-input,
+.field-select {
+  width: 100%;
+  padding: .74rem 1rem;
+  border: 1.5px solid rgba(26,111,207,.18);
+  border-radius: var(--radius-sm);
+  background: #fafcff;
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: .94rem;
+  color: #0d1b2e !important;
+  -webkit-text-fill-color: #0d1b2e !important;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* Select: flecha personalizada */
+.field-select,
+select.field-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238896a8' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .9rem center;
+  padding-right: 2.4rem;
+  cursor: pointer;
+}
+
+/* Opciones del select — forzar color en dropdown */
+.field-input option,
+.field-select option,
+select option {
+  color: #0d1b2e;
+  background: #ffffff;
+  font-family: 'Outfit', system-ui, sans-serif;
+}
+
+.field-input:focus,
+.field-select:focus {
+  background: #ffffff;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(26,111,207,.12);
+}
+
+.field-input:hover:not(:focus),
+.field-select:hover:not(:focus) {
+  border-color: rgba(26,111,207,.35);
+}
+
+.field-input::placeholder {
+  color: #9aaabb;
+  opacity: 1;
+}
+
+/* Autofill específico para clases field */
+.field-input:-webkit-autofill,
+.field-select:-webkit-autofill,
+.field-input:-webkit-autofill:hover,
+.field-input:-webkit-autofill:focus,
+.field-select:-webkit-autofill:hover,
+.field-select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #fafcff inset !important;
+  -webkit-text-fill-color: #0d1b2e !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Fecha — ícono del calendario visible en todos los navegadores */
 .field-input[type="date"] {
   color: #0d1b2e !important;
+  -webkit-text-fill-color: #0d1b2e !important;
+}
+.field-input[type="date"]::-webkit-datetime-edit-text,
+.field-input[type="date"]::-webkit-datetime-edit-month-field,
+.field-input[type="date"]::-webkit-datetime-edit-day-field,
+.field-input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #0d1b2e;
 }
 
-.field-hint { font-size: .82rem; color: var(--muted); margin-top: .3rem; }
-.field-error { font-size: .82rem; color: var(--red); margin-top: .3rem; font-weight: 600; }
+/* Hints y errores */
+.field-hint  { font-size: .81rem; color: var(--muted); margin-top: .3rem; }
+.field-error { font-size: .81rem; color: var(--red);   margin-top: .3rem; font-weight: 600; }
 
-/* Input with prefix icon */
-.input-wrap { position: relative; }
-.input-wrap .input-icon {
+/* ── Input con ícono prefijo ── */
+.input-wrap, .field-wrap { position: relative; }
+.input-wrap .input-icon,
+.field-wrap .field-icon {
   position: absolute; left: .85rem; top: 50%; transform: translateY(-50%);
-  color: var(--muted); pointer-events: none;
+  color: var(--muted); pointer-events: none; z-index: 1;
 }
-.input-wrap .field-input { padding-left: 2.6rem; }
+.input-wrap .field-input,
+.field-wrap .field-input { padding-left: 2.75rem !important; }
+.field-wrap .field-input.field-input--pass { padding-right: 3rem !important; }
 
-/* Grid helpers */
+/* ── Search Bar (barra de búsqueda dentro de cards) ── */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .85rem 1.25rem;
+  border-bottom: 1px solid rgba(26,111,207,.09);
+  background: #fafcff;
+  flex-wrap: wrap;
+}
+
+/* ── Assign Inline (selector de cobrador en tabla) ── */
+.assign-inline {
+  display: flex; gap: .4rem; align-items: center;
+}
+.assign-inline select {
+  flex: 1; min-width: 120px;
+  padding: .35rem .6rem;
+  border: 1.5px solid rgba(26,111,207,.18);
+  border-radius: 8px;
+  background: #fafcff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238896a8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .7rem center;
+  font-family: 'Outfit', sans-serif;
+  font-size: .83rem;
+  color: #0d1b2e !important;
+  -webkit-text-fill-color: #0d1b2e !important;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+  transition: border-color .15s, box-shadow .15s;
+}
+.assign-inline select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(26,111,207,.10);
+  background-color: #fff;
+}
+.assign-inline select option {
+  color: #0d1b2e;
+  background: #fff;
+}
+
+/* ── Grid helpers ── */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .85rem; }
 @media (max-width: 860px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+/* ── Row / Col helpers (evita depender de Bootstrap) ── */
+.row { display: flex; flex-wrap: wrap; margin: 0 -.5rem; }
+.row.g-3 { gap: .75rem; margin: 0; }
+.col-12 { width: 100%; padding: 0 .5rem; }
+.row.g-3 .col-12 { padding: 0; }
 
 /* ══════════════════════════════════════════════════════════
    ALERTS

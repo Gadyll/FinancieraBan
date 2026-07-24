@@ -47,6 +47,52 @@ class ClientsController extends Controller
         ]);
     }
 
+    public function show(int $clientId, MyBankApi $api)
+    {
+        $accessToken = session('mybank_access_token');
+        if (!$accessToken) {
+            return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
+        }
+
+        // Perfil del cliente (incluye préstamo activo)
+        $dashRes = $api->clientDashboard($accessToken, $clientId);
+        if (!$dashRes['ok']) {
+            return redirect()->route('clients.index')
+                ->withErrors(['client' => "Cliente no encontrado ({$dashRes['status']})."]);
+        }
+        $dash   = $dashRes['data'];
+        $client = $dash['client'] ?? [];
+        $dashLoans = $dash['loans'] ?? [];
+
+        $activeLoan = null;
+        $activeSummary = null;
+
+        foreach ($dashLoans as $item) {
+            $st = $item['loan']['status'] ?? '';
+            if (in_array($st, ['ACTIVE', 'LATE'])) {
+                $activeLoan = $item['loan'];
+                $activeSummary = $item['summary'];
+                break;
+            }
+        }
+
+        // Historial de todos los préstamos del cliente
+        $loansRes = $api->listLoans($accessToken, 0, 200);
+        $allLoans = [];
+        if ($loansRes['ok'] && is_array($loansRes['data'])) {
+            $allLoans = array_filter($loansRes['data'], fn($l) => ($l['client_id'] ?? null) == $clientId);
+            $allLoans = array_values($allLoans);
+            usort($allLoans, fn($a, $b) => ($b['id'] ?? 0) <=> ($a['id'] ?? 0));
+        }
+
+        return view('auth.clients.show', [
+            'client'        => $client,
+            'activeLoan'    => $activeLoan,
+            'activeSummary' => $activeSummary,
+            'allLoans'      => $allLoans,
+        ]);
+    }
+
     public function store(Request $request, MyBankApi $api)
     {
         $accessToken = session('mybank_access_token');

@@ -184,12 +184,13 @@
 
 .field-input {
   width: 100%;
-  padding: .80rem 1rem .80rem 2.75rem;
+  padding: .80rem 1rem .80rem 2.75rem !important;
   border: 1.5px solid rgba(26,111,207,.16);
   border-radius: 12px;
   background: #f8faff;
   font-family: 'Outfit', sans-serif;
-  font-size: .97rem; color: #0d1b2e;
+  font-size: .97rem; color: #0d1b2e !important;
+  -webkit-text-fill-color: #0d1b2e !important;
   outline: none;
   transition: border-color .18s, box-shadow .18s, background .18s;
   -ms-reveal: none;
@@ -206,7 +207,7 @@
   background: #fff;
   box-shadow: 0 0 0 3px rgba(26,111,207,.12);
 }
-.field-input--pass { padding-right: 3rem; }
+.field-input--pass { padding-right: 3rem !important; }
 
 /* Eye toggle */
 .field-eye {

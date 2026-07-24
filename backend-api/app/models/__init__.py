@@ -8,3 +8,5 @@ from app.models.loan_schedule import LoanSchedule  # noqa
 from app.models.loan_surcharge import LoanSurcharge  # noqa
 from app.models.payment import Payment  # noqa
 from app.models.ticket import Ticket  # noqa
+from app.models.otp_code import OtpCode  # noqa
+from app.models.trusted_device import TrustedDevice  # noqa

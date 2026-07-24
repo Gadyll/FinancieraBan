@@ -3,24 +3,12 @@
 
 @push('styles')
 <style>
-/* Custom page styles */
+/* ── Estilos específicos de la página Clientes ── */
 .client-num  { font-weight: 800; font-family: 'Courier New', monospace; color: var(--blue); font-size: .88rem; white-space: nowrap; }
 .client-name { font-weight: 700; white-space: nowrap; }
 .client-sub  { font-size: .80rem; color: var(--muted); margin-top: .1rem; }
 
-.assign-inline {
-    display: flex; gap: .4rem; align-items: center;
-}
-.assign-inline select {
-    flex: 1; min-width: 130px; padding: .38rem .65rem;
-    border: 1.5px solid rgba(26,111,207,.18); border-radius: 8px;
-    background: #fafcff; font-family: 'Outfit', sans-serif;
-    font-size: .83rem; color: var(--text); outline: none;
-    cursor: pointer;
-}
-.assign-inline select:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(26,111,207,.10); }
-
-/* Form sections inside Drawers */
+/* Secciones dentro de Drawers */
 .form-section {
     font-size: .72rem; font-weight: 800; text-transform: uppercase;
     letter-spacing: .10em; color: var(--blue);
@@ -31,11 +19,6 @@
 }
 .form-section:first-child { margin-top: 0; }
 .form-section svg { opacity: .7; }
-
-/* Custom column adjustments */
-.tbl th, .tbl td {
-    padding: 0.85rem 1rem;
-}
 </style>
 @endpush
 
@@ -166,7 +149,9 @@
                                         <span class="client-num">{{ $c['client_number'] ?? '—' }}</span>
                                     </td>
                                     <td>
-                                        <div class="client-name">{{ $c['full_name'] ?? '—' }}</div>
+                                        <a href="{{ route('clients.show', ['clientId'=>$cid]) }}" style="text-decoration:none;">
+                                            <div class="client-name" style="color:var(--blue);">{{ $c['full_name'] ?? '—' }}</div>
+                                        </a>
                                         @if(!empty($c['occupation']))
                                             <div class="client-sub">{{ $c['occupation'] }} • ${{ number_format($c['monthly_income'] ?? 0, 2) }}</div>
                                         @endif
@@ -209,6 +194,12 @@
                                                     </svg>
                                                 </button>
                                                 <div class="meatball-dropdown">
+                                                    <a href="{{ route('clients.show', ['clientId'=>$cid]) }}" class="meatball-item">
+                                                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                        </svg>
+                                                        Ver Perfil
+                                                    </a>
                                                     <a href="{{ route('loans.create', ['client_id'=>$cid]) }}" class="meatball-item">
                                                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                             <path stroke-linecap="round" d="M12 5v14M5 12h14"/>

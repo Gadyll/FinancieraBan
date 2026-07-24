@@ -4,96 +4,55 @@
 
 @push('styles')
 <style>
+  /* ── Estilos específicos de la página Usuarios ── */
   .pass-wrap { position: relative; }
   .pass-eye {
-    position:absolute;
-    right:.65rem;
-    top:50%;
+    position: absolute;
+    right: .65rem;
+    top: 50%;
     transform: translateY(-50%);
-    border:0;
-    background:transparent;
-    padding:.35rem;
-    border-radius:10px;
-    cursor:pointer;
-    color:#6b7e96;
+    border: 0;
+    background: transparent;
+    padding: .35rem;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #6b7e96;
+    transition: color .15s;
   }
-  .pass-eye:hover { color:#1a6fcf; }
+  .pass-eye:hover { color: #1a6fcf; }
 
+  /* Reglas de contraseña en tiempo real */
   .pass-rules {
-    margin-top:.65rem;
+    margin-top: .65rem;
     border: 1px dashed rgba(26,111,207,.18);
     background: rgba(26,111,207,.04);
     border-radius: 12px;
     padding: .75rem .9rem;
-    display:flex;
-    flex-direction:column;
-    gap:.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
     font-size: .88rem;
-    color:#3a4d65;
+    color: #3a4d65;
   }
-  .rule { display:flex; align-items:center; gap:.5rem; }
+  .rule { display: flex; align-items: center; gap: .5rem; }
   .dot {
-    width:10px; height:10px; border-radius:999px;
+    width: 10px; height: 10px; border-radius: 999px;
     background: rgba(224,58,58,.70);
     box-shadow: 0 0 0 4px rgba(224,58,58,.10);
-    flex-shrink:0;
+    flex-shrink: 0;
+    transition: background .2s, box-shadow .2s;
   }
   .rule.ok .dot {
     background: rgba(18,169,138,.95);
     box-shadow: 0 0 0 4px rgba(18,169,138,.12);
   }
 
-  /* Roles and Status badges */
-  .badge {
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:5px 12px;
-    border-radius:999px;
-    font-weight:800;
-    font-size:.80rem;
-    letter-spacing:.02em;
-    line-height:1;
-    white-space:nowrap;
-  }
-
-  /* ROLES */
-  .b-admin{
-    background:rgba(26,111,207,.12);
-    color:#1259b0;
-    border:1.5px solid rgba(26,111,207,.25);
-  }
-  .b-user{
-    background:rgba(18,169,138,.12);
-    color:#0a7a63;
-    border:1.5px solid rgba(18,169,138,.28);
-  }
-
-  /* ESTADOS */
-  .b-active{
-    background:rgba(35,184,91,.12);
-    color:#155a2a;
-    border:1.5px solid rgba(35,184,91,.28);
-  }
-  .b-inactive{
-    background:rgba(224,58,58,.10);
-    color:#b02020;
-    border:1.5px solid rgba(224,58,58,.28);
-  }
-
+  /* Ocultar reveal nativo del navegador */
   input[type="password"]::-ms-reveal,
-  input[type="password"]::-ms-clear{
-    display:none;
-    width:0;
-    height:0;
-  }
-
-  input[type="password"]::-webkit-credentials-auto-fill-button{
-    visibility:hidden;
-    display:none !important;
-    pointer-events:none;
-    position:absolute;
-    right:0;
+  input[type="password"]::-ms-clear { display: none; width: 0; height: 0; }
+  input[type="password"]::-webkit-credentials-auto-fill-button {
+    visibility: hidden; display: none !important;
+    pointer-events: none; position: absolute; right: 0;
   }
 </style>
 @endpush
