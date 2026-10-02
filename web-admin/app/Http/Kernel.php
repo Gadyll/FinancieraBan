@@ -52,8 +52,9 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 
         // ✅ MYBANK
-        'mybank.auth' => \App\Http\Middleware\MyBankAuth::class,
-        'mybank.admin' => \App\Http\Middleware\MyBankAdmin::class,
+        'mybank.auth'       => \App\Http\Middleware\MyBankAuth::class,
+        'mybank.admin'      => \App\Http\Middleware\MyBankAdmin::class,
+        'mybank.admin_only' => \App\Http\Middleware\MyBankAdminOnly::class,
     ];
 }
 

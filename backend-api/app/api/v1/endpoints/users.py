@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 
 from app.database.session import get_db
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, get_current_user
 from app.core.security import hash_password
 from app.models.user import User, UserRole
 from app.models.payment import Payment
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 def list_users(
     skip: int = 0,
     limit: int = 200,
-    _: User = Depends(require_admin),
+    _: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return db.query(User).order_by(User.id.asc()).offset(skip).limit(limit).all()
@@ -147,11 +147,16 @@ def delete_user(
 
 # =========================
 # POST /users/{user_id}/reset-password
-# Solo ADMIN, solo USER, devuelve temp_password
+# Solo ADMIN, permite asignar una contraseña personalizada.
 # =========================
+from pydantic import BaseModel
+class ResetPasswordRequest(BaseModel):
+    new_password: str
+
 @router.post("/{user_id}/reset-password")
 def reset_password(
     user_id: int,
+    payload: ResetPasswordRequest,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -162,24 +167,13 @@ def reset_password(
     if user.role == UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="No puedes resetear contraseña de un ADMIN.")
 
-    # Generador de contraseña temporal “bank-grade”
-    upper = string.ascii_uppercase
-    lower = string.ascii_lowercase
-    nums = string.digits
-    spec = "!@#$%^&*()-_=+[]{}:,.?"
+    new_password = payload.new_password.strip()
 
-    temp = [
-        secrets.choice(upper),
-        secrets.choice(lower),
-        secrets.choice(nums),
-        secrets.choice(spec),
-    ]
-    alphabet = upper + lower + nums + spec
-    temp += [secrets.choice(alphabet) for _ in range(8)]  # total 12
-    secrets.SystemRandom().shuffle(temp)
-    temp_password = "".join(temp)
-
-    user.password_hash = hash_password(temp_password)
+    user.password_hash = hash_password(new_password)
+    
+    # ✅ INVALIDATE EXISTING SESSIONS by incrementing token_version
+    user.token_version = (user.token_version or 1) + 1
+    
     db.commit()
 
     return {
@@ -187,6 +181,6 @@ def reset_password(
         "user_id": user.id,
         "user_number": user.user_number,
         "username": user.username,
-        "temp_password": temp_password,
-        "message": "Contraseña reseteada. Entrega la contraseña temporal al cobrador.",
+        "temp_password": new_password,
+        "message": "Contraseña actualizada exitosamente. Las sesiones activas de este usuario han sido cerradas.",
     }

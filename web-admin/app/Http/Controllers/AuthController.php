@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\MyBankApi;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
@@ -43,6 +44,14 @@ class AuthController extends Controller
         $me = $api->me($access);
         if ($me['ok']) {
             session(['mybank_user' => $me['data']]);
+
+            // ✅ AUDITORÍA: registrar inicio de sesión
+            AuditLog::record(
+                'auth', 'login',
+                "Inició sesión en el panel web",
+                ['role' => $me['data']['role'] ?? 'UNKNOWN'],
+                $me['data']['id'] ?? null, 'user'
+            );
         }
 
         return redirect()->route('dashboard');

@@ -3,7 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Panel administrativo FinancieraBan - Gestión financiera">
     <title>@yield('title', 'MYBANK Admin')</title>
+    {{-- Fuente cargada con preconnect para evitar bloqueo de render --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap"></noscript>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
@@ -31,6 +37,7 @@
         </button>
 
         {{-- Navegación --}}
+        @php $me = session('mybank_user'); $isAdmin = ($me['role'] ?? '') === 'ADMIN'; @endphp
         <nav id="mainNav">
             <ul class="nav-links">
                 <li>
@@ -58,19 +65,39 @@
                         Préstamos
                     </a>
                 </li>
-                <li>
+                {{-- Menú de Usuarios — EXCLUSIVO ADMIN --}}
+                @if($isAdmin)
+                <li class="nav-admin-item">
                     <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
                         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 20v-1a5 5 0 015-5h6a5 5 0 015 5v1"/>
                         </svg>
                         Usuarios
+                        <span class="nav-admin-badge" title="Solo administrador">
+                            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                        </span>
                     </a>
                 </li>
+                <li class="nav-admin-item">
+                    <a href="{{ route('audit.index') }}" class="{{ request()->routeIs('audit.*') ? 'active' : '' }}">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Auditoría
+                        <span class="nav-admin-badge" title="Solo administrador">
+                            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                        </span>
+                    </a>
+                </li>
+                @endif
             </ul>
         </nav>
 
         {{-- Usuario --}}
-        @php $me = session('mybank_user'); @endphp
         <div class="topbar-user">
             <span class="user-chip">
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -78,7 +105,21 @@
                 </svg>
                 {{ $me['username'] ?? '—' }}
             </span>
-            <span class="role-chip">{{ $me['role'] ?? '—' }}</span>
+            @if($isAdmin)
+                <span class="role-chip role-chip--admin" title="Administrador — acceso completo">
+                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    ADMIN
+                </span>
+            @else
+                <span class="role-chip role-chip--user" title="Cobrador — acceso operativo">
+                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 20v-1a5 5 0 015-5h6a5 5 0 015 5v1"/>
+                    </svg>
+                    COBRADOR
+                </span>
+            @endif
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button class="btn-logout" type="submit">
@@ -248,7 +289,11 @@ function revertConfirmButton(btn) {
                 const timer = confirmBtn.dataset.confirmTimer;
                 if (timer) clearTimeout(timer);
                 
-                // Let the event bubble naturally so forms submit
+                // Forzar el envío si es un botón type="submit"
+                if (confirmBtn.type === 'submit') {
+                    const form = confirmBtn.closest('form');
+                    if (form) form.submit();
+                }
             }
         }
     });

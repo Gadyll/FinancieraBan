@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, get_current_user
 from app.services.report_service import (
     get_daily_report,
     get_daily_report_by_user,
@@ -29,7 +29,7 @@ def daily_report(
     date: date | None = Query(default=None, description="Fecha (YYYY-MM-DD)"),
     d: date | None = Query(default=None, description="Alias legacy de date"),
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    _user=Depends(get_current_user),
 ):
     report_date = _resolve_date(date, d)
     return get_daily_report(db, report_date)
@@ -40,7 +40,7 @@ def daily_by_user_report(
     date: date | None = Query(default=None, description="Fecha (YYYY-MM-DD)"),
     d: date | None = Query(default=None, description="Alias legacy de date"),
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    _user=Depends(get_current_user),
 ):
     report_date = _resolve_date(date, d)
     return get_daily_report_by_user(db, report_date)
@@ -52,7 +52,7 @@ def daily_by_user_detail(
     d: date | None = Query(default=None, description="Alias legacy"),
     user_id: int = Query(..., description="ID del cobrador"),
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    _user=Depends(get_current_user),
 ):
     report_date = _resolve_date(date, d)
     return get_daily_payments_by_user(db, report_date, user_id)

@@ -71,7 +71,7 @@ class MyBankApi
     {
         $response = Http::acceptJson()
             ->timeout(15)
-            ->post($this->baseUrl . '/auth/login', [
+            ->post($this->baseUrl . '/auth/web-login', [
                 'username' => $username,
                 'password' => $password,
             ]);
@@ -186,12 +186,14 @@ class MyBankApi
         return $this->ok($response);
     }
 
-    public function resetUserPassword(string $accessToken, int $userId): array
+    public function resetUserPassword(string $accessToken, int $userId, string $newPassword): array
     {
         $response = Http::acceptJson()
             ->withToken($accessToken)
             ->timeout(15)
-            ->post($this->baseUrl . "/users/{$userId}/reset-password");
+            ->post($this->baseUrl . "/users/{$userId}/reset-password", [
+                'new_password' => $newPassword
+            ]);
 
         return $this->ok($response);
     }
@@ -200,7 +202,7 @@ class MyBankApi
     // CLIENTS
     // =========================
 
-    public function clients(string $accessToken, int $skip = 0, int $limit = 200): array
+    public function clients(string $accessToken, int $skip = 0, int $limit = 1000): array
     {
         $response = Http::acceptJson()
             ->timeout(15)
@@ -321,7 +323,7 @@ class MyBankApi
         return $this->ok($response);
     }
 
-    public function listLoans(string $accessToken, int $skip = 0, int $limit = 100): array
+    public function listLoans(string $accessToken, int $skip = 0, int $limit = 1000): array
     {
         $response = Http::acceptJson()
             ->timeout(15)

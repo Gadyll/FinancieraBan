@@ -24,13 +24,13 @@ router = APIRouter(prefix="/loans")
 
 
 # =========================
-# ADMIN: CREATE LOAN + SCHEDULE
+# CREATE LOAN + SCHEDULE (ADMIN & USER)
 # =========================
 @router.post("", response_model=LoanOut, status_code=status.HTTP_201_CREATED)
 def create_loan(
     data: LoanCreate,
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     # Validar que exista cliente
     client = db.query(Client).filter(Client.id == data.client_id).first()
@@ -52,14 +52,14 @@ def create_loan(
 
 
 # =========================
-# ADMIN: LIST LOANS
+# LIST LOANS (ADMIN & USER)
 # =========================
 @router.get("", response_model=list[LoanOut])
 def list_loans(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 500,
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    _user: User = Depends(get_current_user),
 ):
     return (
         db.query(Loan)
@@ -71,13 +71,13 @@ def list_loans(
 
 
 # =========================
-# ADMIN: GET LOAN + SCHEDULE
+# GET LOAN + SCHEDULE (ADMIN & USER)
 # =========================
 @router.get("/{loan_id}", response_model=LoanWithScheduleOut)
 def get_loan_with_schedule(
     loan_id: int,
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    _user: User = Depends(get_current_user),
 ):
     loan = db.query(Loan).filter(Loan.id == loan_id).first()
     if not loan:
@@ -96,7 +96,7 @@ def get_loan_with_schedule(
 
 
 # =========================
-# ADMIN/USER: GET SCHEDULE (USER solo si el cliente es suyo)
+# GET SCHEDULE (ADMIN & USER)
 # =========================
 @router.get("/{loan_id}/schedule", response_model=list[ScheduleOut])
 def get_schedule(
@@ -107,21 +107,6 @@ def get_schedule(
     loan = db.query(Loan).filter(Loan.id == loan_id).first()
     if not loan:
         raise HTTPException(status_code=404, detail="Préstamo no encontrado")
-
-    # ADMIN siempre puede ver
-    if current_user.role == UserRole.ADMIN:
-        pass
-    else:
-        # USER solo si el cliente está asignado a él
-        allowed = (
-            db.query(ClientAssignment)
-            .filter(ClientAssignment.client_id == loan.client_id)
-            .filter(ClientAssignment.user_id == current_user.id)
-            .filter(ClientAssignment.is_active == True)  # noqa
-            .first()
-        )
-        if not allowed:
-            raise HTTPException(status_code=403, detail="No tienes acceso a este préstamo")
 
     schedule = (
         db.query(LoanSchedule)
@@ -172,18 +157,6 @@ def loan_summary(
     loan = db.query(Loan).filter(Loan.id == loan_id).first()
     if not loan:
         raise HTTPException(status_code=404, detail="Préstamo no encontrado")
-
-    # Permisos (igual que schedule)
-    if current_user.role != UserRole.ADMIN:
-        allowed = (
-            db.query(ClientAssignment)
-            .filter(ClientAssignment.client_id == loan.client_id)
-            .filter(ClientAssignment.user_id == current_user.id)
-            .filter(ClientAssignment.is_active == True)  # noqa
-            .first()
-        )
-        if not allowed:
-            raise HTTPException(status_code=403, detail="No tienes acceso a este préstamo")
 
     # Total pagado
     total_paid = (
@@ -370,7 +343,7 @@ def pay_surcharge(
     summary="Tabla de tasas oficial",
 )
 def get_rate_table(
-    _admin=Depends(require_admin),
+    _user: User = Depends(get_current_user),
 ):
     """
     Retorna la tabla oficial de tasas de interés.

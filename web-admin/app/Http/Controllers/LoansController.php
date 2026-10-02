@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\MyBankApi;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 
 class LoansController extends Controller
@@ -20,7 +21,7 @@ class LoansController extends Controller
         $error = null;
         $loans = [];
 
-        $res = $api->listLoans($accessToken, 0, 200);
+        $res = $api->listLoans($accessToken, 0, 1000);
         if (!$res['ok']) {
             $error = "No se pudieron cargar préstamos: ({$res['status']}) " . json_encode($res['data']);
         } else {
@@ -28,7 +29,7 @@ class LoansController extends Controller
         }
 
         // Traer clientes para mostrar nombre en la tabla
-        $clientsRes = $api->clients($accessToken, 0, 500);
+        $clientsRes = $api->clients($accessToken, 0, 1000);
         $clientsMap = [];
         if ($clientsRes['ok'] && is_array($clientsRes['data'])) {
             foreach ($clientsRes['data'] as $c) {
@@ -129,6 +130,17 @@ class LoansController extends Controller
         }
 
         $loanId = $res['data']['id'] ?? null;
+        $clientId = $res['data']['client_id'] ?? null;
+        $amount = $payload['principal_amount'] ?? 0;
+
+        // ✅ AUDITORÍA
+        AuditLog::record(
+            'loans', 'create',
+            "Abrió préstamo de $" . number_format($amount, 2) . " (cliente ID #{$clientId})",
+            ['loan_id' => $loanId, 'payload' => $payload],
+            $loanId, 'loan'
+        );
+
         return redirect()
             ->route('loans.show', ['loanId' => $loanId])
             ->with('success', 'Préstamo creado correctamente con calendario de pagos.');
@@ -203,9 +215,17 @@ class LoansController extends Controller
             return back()->withErrors(['surcharge_pay' => "No se pudo liquidar el recargo: {$msg}"]);
         }
 
+        // ✅ AUDITORÍA
+        AuditLog::record(
+            'payments', 'pay_surcharge',
+            "Liquidó recargo ID #{$surchargeId} del préstamo ID #{$loanId}",
+            ['loan_id' => $loanId, 'surcharge_id' => $surchargeId],
+            $loanId, 'loan'
+        );
+
         return redirect()
             ->route('loans.show', ['loanId' => $loanId])
-            ->with('success', '✓ Recargo liquidado. El préstamo principal no fue modificado.');
+            ->with('success', 'Recargo liquidado. El préstamo principal no fue modificado.');
     }
 
     // ─────────────────────────────────────────
@@ -238,9 +258,17 @@ class LoansController extends Controller
             return back()->withErrors(['surcharge' => "No se pudo autorizar el recargo: {$msg}"]);
         }
 
+        // ✅ AUDITORÍA
+        AuditLog::record(
+            'loans', 'surcharge',
+            "Autorizó recargo de $" . number_format((float)$data['amount'], 2) . " en préstamo ID #{$loanId}",
+            ['loan_id' => $loanId, 'amount' => $data['amount'], 'reason' => $data['reason'] ?? null],
+            $loanId, 'loan'
+        );
+
         return redirect()
             ->route('loans.show', ['loanId' => $loanId])
-            ->with('success', '✓ Recargo por mora autorizado correctamente. El cobrador podrá cobrarlo.');
+            ->with('success', 'Recargo por mora autorizado correctamente. El cobrador podrá cobrarlo.');
     }
 
     // ─────────────────────────────────────────
@@ -322,6 +350,14 @@ class LoansController extends Controller
             'paid_at'        => now()->format('d/m/Y H:i'),
             'notes'          => $data['notes'] ?? null,
         ]);
+
+        // ✅ AUDITORÍA
+        AuditLog::record(
+            'payments', 'pay',
+            "Registró pago de $" . number_format((float)$data['amount_paid'], 2) . " al préstamo ID #{$loanId} (ticket {$ticketNumber})",
+            ['loan_id' => $loanId, 'amount_paid' => $data['amount_paid'], 'method' => $data['payment_method'], 'ticket' => $ticketNumber],
+            $loanId, 'loan'
+        );
 
         return redirect()
             ->route('loans.show', ['loanId' => $loanId])

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\MyBankApi;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 
 class ClientsController extends Controller
@@ -16,7 +17,7 @@ class ClientsController extends Controller
 
         $error = null;
 
-        $clientsResp = $api->clients($accessToken, 0, 500);
+        $clientsResp = $api->clients($accessToken, 0, 1000);
         $clients = [];
 
         if (!$clientsResp['ok']) {
@@ -145,9 +146,19 @@ class ClientsController extends Controller
         }
 
         $newClientId = $resp['data']['id'] ?? null;
+        $newClientName = $resp['data']['full_name'] ?? 'N/A';
+
+        // ✅ AUDITORÍA: registrar creación del cliente
+        AuditLog::record(
+            'clients', 'create',
+            "Registró nuevo cliente: {$newClientName}",
+            ['payload' => $data, 'new_client_id' => $newClientId],
+            $newClientId, 'client'
+        );
+
         return redirect()
             ->route('clients.index', ['created' => 1, 'new_id' => $newClientId])
-            ->with('success', "✅ Cliente '{$resp['data']['full_name']}' registrado. Puedes modificarlo o eliminarlo.");
+            ->with('success', "Cliente '{$newClientName}' registrado.");
     }
 
     public function destroy(int $clientId, MyBankApi $api)
@@ -164,7 +175,10 @@ class ClientsController extends Controller
             return back()->withErrors(['client_delete' => $detail]);
         }
 
-        return redirect()->route('clients.index')->with('success', '🗑️ Cliente eliminado correctamente.');
+        // ✅ AUDITORÍA
+        AuditLog::record('clients', 'delete', "Eliminó cliente ID #{$clientId}", [], $clientId, 'client');
+
+        return redirect()->route('clients.index')->with('success', 'Cliente eliminado correctamente.');
     }
 
     public function update(int $clientId, Request $request, MyBankApi $api)
@@ -219,6 +233,15 @@ class ClientsController extends Controller
             ]);
         }
 
+        // ✅ AUDITORÍA
+        $updatedName = $resp['data']['full_name'] ?? 'N/A';
+        AuditLog::record(
+            'clients', 'update',
+            "Actualizó datos del cliente: {$updatedName} (ID #{$clientId})",
+            ['changes' => $data],
+            $clientId, 'client'
+        );
+
         return redirect()->route('clients.index')->with('success', 'Cliente actualizado correctamente.');
     }
 
@@ -244,6 +267,14 @@ class ClientsController extends Controller
                 'client_assign' => "ASSIGN FALLÓ ({$resp['status']}): " . json_encode($resp['data']),
             ]);
         }
+
+        // ✅ AUDITORÍA
+        AuditLog::record(
+            'clients', 'assign',
+            "Asignó cliente ID #{$clientId} al cobrador ID #{$data['user_id']}",
+            ['client_id' => $clientId, 'user_id' => $data['user_id']],
+            $clientId, 'client'
+        );
 
         return redirect()->route('clients.index')->with('success', 'Cliente asignado al cobrador correctamente.');
     }

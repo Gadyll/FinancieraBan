@@ -45,13 +45,13 @@ def generate_next_client_number(db: Session) -> str:
 
 
 # =========================
-# ADMIN: CREATE CLIENT
+# CREATE CLIENT (ADMIN & USER)
 # =========================
 @router.post("", response_model=ClientOut, status_code=status.HTTP_201_CREATED)
 def create_client(
     data: ClientCreate,
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     # ── Validar nombre duplicado: mismo nombre completo (sin importar mayúsculas) ──
     nombre_normalizado = data.full_name.strip().upper()
@@ -97,6 +97,16 @@ def create_client(
     db.commit()
     db.refresh(client)
 
+    # Si lo registra un cobrador (USER), auto-asignar el cliente a él
+    if current_user.role == UserRole.USER:
+        assignment = ClientAssignment(
+            client_id=client.id,
+            user_id=current_user.id,
+            is_active=True,
+        )
+        db.add(assignment)
+        db.commit()
+
     return client
 
 
@@ -106,9 +116,9 @@ def create_client(
 @router.get("", response_model=list[ClientOutAdmin])
 def list_clients(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000,
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     clients = (
         db.query(Client)
@@ -184,18 +194,29 @@ def list_clients(
 
 
 # =========================
-# ADMIN: UPDATE CLIENT
+# UPDATE CLIENT (ADMIN & USER)
 # =========================
 @router.patch("/{client_id}", response_model=ClientOut)
 def update_client(
     client_id: int,
     data: ClientUpdate,
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    if current_user.role != UserRole.ADMIN:
+        assigned = (
+            db.query(ClientAssignment)
+            .filter(ClientAssignment.client_id == client_id)
+            .filter(ClientAssignment.user_id == current_user.id)
+            .filter(ClientAssignment.is_active == True)  # noqa
+            .first()
+        )
+        if not assigned:
+            raise HTTPException(status_code=403, detail="Solo puedes editar los clientes que tienes asignados")
 
     guarantor = db.query(Guarantor).filter(Guarantor.client_id == client_id).first()
 
@@ -387,17 +408,6 @@ def client_dashboard(
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-
-    if current_user.role != UserRole.ADMIN:
-        allowed = (
-            db.query(ClientAssignment)
-            .filter(ClientAssignment.client_id == client_id)
-            .filter(ClientAssignment.user_id == current_user.id)
-            .filter(ClientAssignment.is_active == True)  # noqa
-            .first()
-        )
-        if not allowed:
-            raise HTTPException(status_code=403, detail="No tienes acceso a este cliente")
 
     loans = (
         db.query(Loan)

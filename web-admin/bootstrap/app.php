@@ -11,11 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-    $middleware->alias([
-        'mybank.auth'  => \App\Http\Middleware\MyBankAuth::class,
-        'mybank.admin' => \App\Http\Middleware\MyBankAdmin::class,
-    ]);
-})
+        $middleware->alias([
+            'mybank.auth'       => \App\Http\Middleware\MyBankAuth::class,
+            'mybank.admin'      => \App\Http\Middleware\MyBankAdmin::class,
+            'mybank.admin_only' => \App\Http\Middleware\AdminOnlyMiddleware::class,
+            'admin.only'        => \App\Http\Middleware\AdminOnlyMiddleware::class,
+        ]);
+    })
 
     ->withExceptions(function (Exceptions $exceptions) {
         //

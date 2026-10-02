@@ -18,6 +18,7 @@ def get_current_user(
     - Si no hay token => 401
     - Si token inválido => 401
     - Si user no existe o está inactivo => 401
+    - Si token_version no coincide => 401 (sesión única concurrente)
     """
     if credentials is None:
         raise HTTPException(
@@ -43,6 +44,15 @@ def get_current_user(
             detail="Usuario inválido o inactivo",
         )
 
+    # ✅ Validación de sesión única concurrente:
+    # Si el token lleva una versión anterior, fue invalidado por un login posterior.
+    token_version_in_jwt = payload.get("tv")
+    if token_version_in_jwt is not None and int(token_version_in_jwt) != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesión expirada. Otro dispositivo inició sesión con este usuario.",
+        )
+
     return user
 
 
@@ -50,7 +60,6 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     """
     Dependency: solo ADMIN puede pasar.
     """
-    # Si tu modelo usa enum UserRole, esto es lo más robusto:
     if current_user.role not in (UserRole.ADMIN, "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

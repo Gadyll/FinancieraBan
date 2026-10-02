@@ -363,7 +363,7 @@
         </div>
       @endif
 
-      <form id="loginForm" method="POST" action="{{ route('login.post') }}">
+      <form id="loginForm" method="POST" action="{{ route('login.post') }}" autocomplete="off">
         @csrf
 
         <!-- Usuario -->
@@ -379,7 +379,7 @@
               class="field-input"
               placeholder="admin"
               value="{{ old('username') }}"
-              autocomplete="username"
+              autocomplete="off"
               required
             >
           </div>
@@ -397,7 +397,7 @@
               id="password" name="password" type="password"
               class="field-input field-input--pass"
               placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-              autocomplete="current-password"
+              autocomplete="new-password"
               required
             >
             <button type="button" class="field-eye" id="togglePassword" aria-label="Mostrar contrase&ntilde;a">
@@ -465,6 +465,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   var saved = localStorage.getItem("mybank_user");
   if (saved) { usernameInput.value = saved; rememberCheck.checked = true; }
+  
+  // Clean ghost password
+  passwordInput.value = "";
 
   form.addEventListener("submit", function () {
     loginBtn.disabled        = true;

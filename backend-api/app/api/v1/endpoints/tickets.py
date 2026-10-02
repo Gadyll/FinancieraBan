@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.core.dependencies import require_admin
+from app.core.dependencies import get_current_user
 from app.models.ticket import Ticket
 from app.models.payment import Payment
 from app.models.client import Client
@@ -17,7 +17,7 @@ def recent_tickets(
     limit: int = Query(default=10, ge=1, le=50),
     date: date | None = Query(default=None, description="Filtra por fecha (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    _user=Depends(get_current_user),
 ):
     q = (
         db.query(Ticket)

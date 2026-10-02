@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\MyBankApi;
+use App\Models\AuditLog;
 
 class UsersController extends Controller
 {
@@ -28,9 +29,6 @@ class UsersController extends Controller
             'users' => $users,
             'error' => $error,
             'clearUserForm' => (bool) session('clear_user_form', false),
-
-            // ✅ Para mostrar modal de resultado del reset
-            'resetResult' => session('reset_result'),
         ]);
     }
 
@@ -77,6 +75,15 @@ class UsersController extends Controller
                 ->withInput();
         }
 
+        // ✅ AUDITORÍA
+        $newUser = $res['data'];
+        AuditLog::record(
+            'users', 'create',
+            "Creó nuevo cobrador: {$validated['username']}",
+            ['username' => $validated['username'], 'email' => $validated['email']],
+            $newUser['id'] ?? null, 'user'
+        );
+
         return redirect()
             ->route('users.index')
             ->with('ok', 'Cobrador creado correctamente.')
@@ -97,6 +104,15 @@ class UsersController extends Controller
                 ->route('users.index')
                 ->withErrors(['users' => "No se pudo cambiar estado: ({$res['status']})"]);
         }
+
+        // ✅ AUDITORÍA
+        $newStatus = $res['data']['is_active'] ?? null;
+        AuditLog::record(
+            'users', 'toggle',
+            "Cambió estado del cobrador ID #{$userId} a " . ($newStatus ? 'ACTIVO' : 'INACTIVO'),
+            ['user_id' => $userId, 'new_status' => $newStatus ? 'active' : 'inactive'],
+            (int)$userId, 'user'
+        );
 
         return redirect()->route('users.index')->with('ok', 'Estado actualizado.');
     }
@@ -122,18 +138,37 @@ class UsersController extends Controller
                 ->withErrors(['users' => "No se pudo eliminar: ({$res['status']}) " . json_encode($res['data'])]);
         }
 
+        // ✅ AUDITORÍA
+        AuditLog::record('users', 'delete', "Eliminó cobrador ID #{$userId}", ['user_id' => $userId], (int)$userId, 'user');
+
         return redirect()->route('users.index')->with('ok', 'Cobrador eliminado definitivamente.');
     }
 
     // ✅ RESET PASSWORD (solo ADMIN)
-    public function resetPassword(string $userId, MyBankApi $api)
+    public function resetPassword(Request $request, string $userId, MyBankApi $api)
     {
         $accessToken = session('mybank_access_token');
         if (!$accessToken) {
             return redirect()->route('login')->withErrors(['login' => 'Sesión inválida.']);
         }
 
-        $res = $api->resetUserPassword($accessToken, (int)$userId);
+        $validated = $request->validate([
+            'new_password' => [
+                'required',
+                'string',
+                'min:8',
+                'max:128',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
+            ]
+        ], [
+            'new_password.required' => 'Debes ingresar una contraseña.',
+            'new_password.min'      => 'La contraseña debe tener mínimo 8 caracteres.',
+            'new_password.regex'    => 'La contraseña debe incluir mayúscula, número y un carácter especial.',
+        ]);
+
+        $res = $api->resetUserPassword($accessToken, (int)$userId, $validated['new_password']);
 
         if (!$res['ok']) {
             $msg = $res['data']['detail'] ?? $res['data']['message'] ?? json_encode($res['data']);
@@ -142,11 +177,12 @@ class UsersController extends Controller
                 ->withErrors(['users' => "No se pudo resetear contraseña: ({$res['status']}) {$msg}"]);
         }
 
-        // Guardamos resultado para mostrar modal con la temp_password
+        // ✅ AUDITORÍA
+        AuditLog::record('users', 'reset_password', "Resetó contraseña del cobrador ID #{$userId}", ['user_id' => $userId], (int)$userId, 'user');
+
         return redirect()
             ->route('users.index')
-            ->with('reset_result', $res['data'])
-            ->with('ok', 'Contraseña reseteada. Copia y entrega la contraseña temporal al cobrador.');
+            ->with('ok', 'Contraseña actualizada. Ya se puede iniciar sesión con la nueva clave inmediatamente.');
     }
 }
 

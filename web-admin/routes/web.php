@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\ClientsController;
 use App\Http\Controllers\LoansController;
+use App\Http\Controllers\AuditLogController;
 
 Route::get('/', fn () => redirect()->route('login'));
 
@@ -15,20 +16,15 @@ Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout',[AuthController::class, 'logout'])->name('logout');
 
-// ADMIN AREA
-Route::middleware(['mybank.auth', 'mybank.admin'])->group(function () {
+// ══════════════════════════════════════════════════════════════════
+// ÁREA COMPARTIDA — ADMIN y USER (cobrador) pueden acceder
+// ══════════════════════════════════════════════════════════════════
+Route::middleware(['mybank.auth'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Usuarios (Cobradores)
-    Route::get('/users',                          [UsersController::class, 'index'])->name('users.index');
-    Route::post('/users',                         [UsersController::class, 'store'])->name('users.store');
-    Route::patch('/users/{userId}/toggle',        [UsersController::class, 'toggleActive'])->name('users.toggle');
-    Route::delete('/users/{userId}',              [UsersController::class, 'destroy'])->name('users.destroy');
-    Route::post('/users/{userId}/reset-password', [UsersController::class, 'resetPassword'])->name('users.reset-password');
-
-    // Clientes
+    // Clientes — ambos roles pueden ver y operar clientes
     Route::get('/clients',                    [ClientsController::class, 'index'])->name('clients.index');
     Route::post('/clients',                   [ClientsController::class, 'store'])->name('clients.store');
     Route::get('/clients/{clientId}',         [ClientsController::class, 'show'])->name('clients.show');
@@ -36,7 +32,7 @@ Route::middleware(['mybank.auth', 'mybank.admin'])->group(function () {
     Route::delete('/clients/{clientId}',      [ClientsController::class, 'destroy'])->name('clients.destroy');
     Route::post('/clients/{clientId}/assign', [ClientsController::class, 'assign'])->name('clients.assign');
 
-    // Préstamos
+    // Préstamos — ambos roles
     Route::get('/loans',                                        [LoansController::class, 'index'])->name('loans.index');
     Route::get('/loans/create',                                 [LoansController::class, 'create'])->name('loans.create');
     Route::post('/loans',                                       [LoansController::class, 'store'])->name('loans.store');
@@ -45,4 +41,20 @@ Route::middleware(['mybank.auth', 'mybank.admin'])->group(function () {
     Route::post('/loans/{loanId}/surcharge',                    [LoansController::class, 'storeSurcharge'])->name('loans.surcharge');
     Route::post('/loans/{loanId}/surcharges/{surchargeId}/pay', [LoansController::class, 'paySurcharge'])->name('loans.surcharge.pay');
     Route::get('/loans/{loanId}/ticket',                        [LoansController::class, 'ticket'])->name('loans.ticket');
+});
+
+// ══════════════════════════════════════════════════════════════════
+// ÁREA EXCLUSIVA ADMIN — solo ADMIN puede acceder
+// ══════════════════════════════════════════════════════════════════
+Route::middleware(['mybank.auth', 'mybank.admin_only'])->group(function () {
+
+    // Usuarios (Cobradores) — CRUD exclusivo del administrador
+    Route::get('/users',                          [UsersController::class, 'index'])->name('users.index');
+    Route::post('/users',                         [UsersController::class, 'store'])->name('users.store');
+    Route::patch('/users/{userId}/toggle',        [UsersController::class, 'toggleActive'])->name('users.toggle');
+    Route::delete('/users/{userId}',              [UsersController::class, 'destroy'])->name('users.destroy');
+    Route::post('/users/{userId}/reset-password', [UsersController::class, 'resetPassword'])->name('users.reset-password');
+
+    // Auditoría transaccional — solo ADMIN
+    Route::get('/audit', [AuditLogController::class, 'index'])->name('audit.index');
 });

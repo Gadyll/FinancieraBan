@@ -148,15 +148,12 @@
                           </form>
 
                           {{-- Reset Password --}}
-                          <form method="POST" action="{{ route('users.reset-password', $u['id']) }}" style="display:inline;">
-                            @csrf
-                            <button class="meatball-item btn-confirm" type="submit" data-confirm-text="¿Resetear clave?">
-                              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" d="M15 7a2 2 0 012 2m-2 4a2 2 0 012 2m3-3a3 3 0 11-6 0 3 3 0 016 0zm-7 0H3"/>
-                              </svg>
-                              Reset contraseña
-                            </button>
-                          </form>
+                          <button class="meatball-item" type="button" onclick="openResetDrawer({{ $u['id'] }}, '{{ $u['username'] ?? '' }}')">
+                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" d="M15 7a2 2 0 012 2m-2 4a2 2 0 012 2m3-3a3 3 0 11-6 0 3 3 0 016 0zm-7 0H3"/>
+                            </svg>
+                            Reset contraseña
+                          </button>
 
                           {{-- Delete User --}}
                           <form method="POST" action="{{ route('users.destroy', $u['id']) }}" style="display:inline;">
@@ -246,41 +243,52 @@
   </form>
 </div>
 
-{{-- ── DRAWER: RESULTADO DEL RESET DE CONTRASEÑA ── --}}
-@if($resetResult)
-<div class="drawer open" id="resetResultDrawer">
+{{-- ── DRAWER: RESET DE CONTRASEÑA PERSONALIZADO ── --}}
+<div class="drawer" id="resetPasswordDrawer">
   <div class="drawer-head">
-    <h3 class="drawer-title">🔑 Contraseña temporal</h3>
-    <button class="drawer-close" onclick="closeDrawer('resetResultDrawer')">✕</button>
+    <h3 class="drawer-title">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" d="M15 7a2 2 0 012 2m-2 4a2 2 0 012 2m3-3a3 3 0 11-6 0 3 3 0 016 0zm-7 0H3"/>
+      </svg>
+      Resetear contraseña
+    </h3>
+    <button class="drawer-close" onclick="closeDrawer('resetPasswordDrawer')">✕</button>
   </div>
-  <div class="drawer-body">
-    <p style="font-size:.92rem; margin-bottom:1.2rem; color:var(--text-2);">
-      Se ha generado una contraseña temporal para el cobrador. Cópiala y entrégala de forma segura.
-    </p>
+  <form method="POST" action="" id="resetPasswordForm" autocomplete="off">
+    @csrf
+    <div class="drawer-body">
+      <p style="font-size:0.86rem; color:var(--muted); margin-bottom:1.25rem;">
+        Estás a punto de cambiar la contraseña de <strong id="resetTargetUsername"></strong>.
+      </p>
 
-    <div class="card p-3 mb-3" style="background:#fafcff; border: 1.5px solid var(--line);">
-      <div style="font-size: .80rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">Cobrador</div>
-      <div style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-top: 4px;">{{ $resetResult['username'] ?? '-' }}</div>
+      <div class="field">
+        <label class="field-label" for="new_password">Nueva Contraseña</label>
+        <div class="pass-wrap">
+          <input class="field-input" id="new_password" name="new_password" type="password"
+                 placeholder="Mínimo 8, mayúscula, número, especial" required
+                 autocomplete="new-password" style="padding-right:3rem;">
+          <button type="button" class="pass-eye" id="toggleResetPass" aria-label="Mostrar contraseña">
+            <svg id="eyeIconReset" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
 
-      <div style="font-size: .80rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 12px;">ID Usuario</div>
-      <div style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-top: 4px;">#{{ $resetResult['user_id'] ?? '-' }}</div>
-    </div>
-
-    <div class="field">
-      <label class="field-label">Contraseña temporal</label>
-      <div style="display:flex; gap:.6rem; align-items:center;">
-        <input class="field-input" id="tempPass" type="text" readonly
-               value="{{ $resetResult['temp_password'] ?? '' }}" style="font-family: monospace; font-weight: bold; font-size: 1.1rem; background:#ffffff; border-color:var(--teal); text-align:center; letter-spacing: 1px;">
-        <button class="btn btn-teal" type="button" id="copyTempPass">Copiar</button>
+        <div class="pass-rules" id="passRulesReset">
+          <div class="rule" data-rule="len"><span class="dot"></span> Mínimo 8 caracteres</div>
+          <div class="rule" data-rule="upper"><span class="dot"></span> Al menos 1 mayúscula</div>
+          <div class="rule" data-rule="num"><span class="dot"></span> Al menos 1 número</div>
+          <div class="rule" data-rule="spec"><span class="dot"></span> Al menos 1 caracter especial (!@#$...)</div>
+        </div>
       </div>
-      <div class="text-teal font-weight-bold" id="copyMsg" style="margin-top:.5rem; display:none; font-size:0.84rem;">✓ ¡Contraseña copiada al portapapeles!</div>
     </div>
-  </div>
-  <div class="drawer-foot">
-    <button class="btn btn-primary btn-full" type="button" onclick="closeDrawer('resetResultDrawer')">Listo</button>
-  </div>
+    <div class="drawer-foot">
+      <button class="btn btn-ghost" type="button" onclick="closeDrawer('resetPasswordDrawer')">Cancelar</button>
+      <button class="btn btn-primary" type="submit" id="resetSubmitBtn" style="background:var(--teal);">Actualizar contraseña</button>
+    </div>
+  </form>
 </div>
-@endif
 
 @endsection
 
@@ -381,37 +389,76 @@
 
   syncCreateButton();
 
-  if(form){
-    form.addEventListener('submit', function(e){
-      syncCreateButton();
-      if(submitBtn && submitBtn.disabled){
-        e.preventDefault();
+  // Lógica para Reset Password Drawer
+  var resetForm = document.getElementById('resetPasswordForm');
+  var resetTargetUsername = document.getElementById('resetTargetUsername');
+  var resetPassInput = document.getElementById('new_password');
+  var resetToggleBtn = document.getElementById('toggleResetPass');
+  var resetEyeIcon = document.getElementById('eyeIconReset');
+  var resetRulesBox = document.getElementById('passRulesReset');
+  var resetSubmitBtn = document.getElementById('resetSubmitBtn');
+
+  window.openResetDrawer = function(id, username) {
+      if(resetTargetUsername) resetTargetUsername.textContent = username;
+      if(resetForm) {
+          resetForm.action = "/users/" + id + "/reset-password";
+          resetForm.reset();
       }
-    });
+      if(resetPassInput) resetPassInput.type = 'password';
+      updateResetRules("");
+      syncResetButton();
+      openDrawer('resetPasswordDrawer');
+  };
+
+  if(resetToggleBtn && resetPassInput){
+      resetToggleBtn.addEventListener('click', function(){
+          var show = (resetPassInput.type === 'password');
+          resetPassInput.type = show ? 'text' : 'password';
+          resetEyeIcon.innerHTML = show
+              ? '<path stroke-linecap="round" stroke-linejoin="round" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/>'
+              : '<path stroke-linecap="round" stroke-linejoin="round" d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>';
+      });
   }
 
-  // Copy temp password functionality
-  var copyBtn = document.getElementById('copyTempPass');
-  var tempPass = document.getElementById('tempPass');
-  var copyMsg = document.getElementById('copyMsg');
+  function setResetRule(name, ok){
+      if(!resetRulesBox) return;
+      var el = resetRulesBox.querySelector('[data-rule="'+name+'"]');
+      if(!el) return;
+      if(ok) el.classList.add('ok'); else el.classList.remove('ok');
+  }
 
-  if(copyBtn && tempPass){
-    copyBtn.addEventListener('click', async function(){
-      try {
-        await navigator.clipboard.writeText(tempPass.value || '');
-        if(copyMsg){
-          copyMsg.style.display = 'block';
-          setTimeout(function(){ copyMsg.style.display = 'none'; }, 2000);
-        }
-      } catch(e) {
-        tempPass.select();
-        document.execCommand('copy');
-        if(copyMsg){
-          copyMsg.style.display = 'block';
-          setTimeout(function(){ copyMsg.style.display = 'none'; }, 2000);
-        }
-      }
-    });
+  function updateResetRules(val){
+      var st = rulesState(val);
+      setResetRule('len', st.len);
+      setResetRule('upper', st.upper);
+      setResetRule('num', st.num);
+      setResetRule('spec', st.spec);
+      return st;
+  }
+
+  function syncResetButton(){
+      if(!resetSubmitBtn) return;
+      var pass = resetPassInput ? (resetPassInput.value || "") : "";
+      var st = updateResetRules(pass);
+      var ok = st.len && st.upper && st.num && st.spec;
+      resetSubmitBtn.disabled = !ok;
+      resetSubmitBtn.style.opacity = ok ? "1" : ".55";
+      resetSubmitBtn.style.cursor = ok ? "pointer" : "not-allowed";
+  }
+
+  if(resetPassInput){
+      resetPassInput.addEventListener('input', function(e){
+          syncResetButton();
+      });
+  }
+
+  if(resetForm){
+      resetForm.addEventListener('submit', function(e){
+          syncResetButton();
+          if(resetSubmitBtn && resetSubmitBtn.disabled){
+              e.preventDefault();
+          }
+      });
   }
 })();
 </script>

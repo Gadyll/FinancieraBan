@@ -28,16 +28,23 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-class AdminLoginRequest(BaseModel):
+class WebLoginRequest(BaseModel):
     username: str
     password: str
 
 
-@router.post("/admin-login", response_model=TokenResponse)
-def admin_login(data: AdminLoginRequest, db: Session = Depends(get_db)):
+# ─────────────────────────────────────────────────────────────────────────────
+# PANEL WEB — login sin OTP (ADMIN y USER con rol de cobrador pueden entrar)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/web-login", response_model=TokenResponse)
+def web_login(data: WebLoginRequest, db: Session = Depends(get_db)):
     """
-    Login exclusivo para el panel web administrativo.
-    No requiere OTP ni device_id. Solo acepta usuarios con rol ADMIN.
+    Login para el panel web administrativo.
+    - No requiere OTP ni device_id.
+    - Acepta roles ADMIN y USER.
+    - Implementa sesión única: al hacer login se incrementa token_version,
+      invalidando automáticamente cualquier sesión anterior en otros dispositivos.
     """
     user = authenticate_user(db, data.username, data.password)
     if not user:
@@ -46,15 +53,31 @@ def admin_login(data: AdminLoginRequest, db: Session = Depends(get_db)):
             detail="Credenciales invalidas.",
         )
 
-    if user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso denegado. Solo administradores pueden ingresar al panel web.",
-        )
-
-    tokens = generate_tokens_for_user(user)
+    # ✅ Generar tokens + incrementar token_version (invalida sesiones previas)
+    tokens = generate_tokens_for_user(user, db=db)
     return TokenResponse(**tokens)
 
+
+@router.post("/admin-login", response_model=TokenResponse)
+def admin_login(data: WebLoginRequest, db: Session = Depends(get_db)):
+    """
+    Alias mantenido por compatibilidad. Ahora acepta ADMIN y USER.
+    Redirige internamente a web-login.
+    """
+    user = authenticate_user(db, data.username, data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales invalidas.",
+        )
+
+    tokens = generate_tokens_for_user(user, db=db)
+    return TokenResponse(**tokens)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# APP MÓVIL — login con OTP y device_id
+# ─────────────────────────────────────────────────────────────────────────────
 
 def _mask_email(email: str) -> str:
     """Enmascara el correo: ma***@gmail.com"""
@@ -71,7 +94,7 @@ def _mask_email(email: str) -> str:
 @router.post("/login", response_model=Union[TokenResponse, OTPRequiredResponse])
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     """
-    Paso 1 del login.
+    Paso 1 del login (app móvil).
     - Valida credenciales.
     - Si el dispositivo ya es de confianza: retorna tokens directamente.
     - Si es un dispositivo nuevo: envia OTP al correo y retorna otp_required=True.
@@ -86,7 +109,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
     # 2) Verificar si el dispositivo ya es de confianza
     if is_device_trusted(db, user.id, data.device_id):
-        tokens = generate_tokens_for_user(user)
+        tokens = generate_tokens_for_user(user, db=db)
         return TokenResponse(**tokens, otp_required=False)
 
     # 3) Dispositivo nuevo: verificar que el usuario tenga correo
@@ -132,7 +155,7 @@ def verify_otp_endpoint(data: OTPVerifyRequest, db: Session = Depends(get_db)):
     if result == OTPResult.OK:
         # Registrar dispositivo como de confianza
         trust_device(db, user.id, data.device_id, data.device_name)
-        tokens = generate_tokens_for_user(user)
+        tokens = generate_tokens_for_user(user, db=db)
         return TokenResponse(**tokens, otp_required=False)
 
     elif result == OTPResult.EXPIRED:
@@ -210,7 +233,16 @@ def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
             detail="Usuario invalido o inactivo",
         )
 
-    return TokenResponse(**generate_tokens_for_user(user))
+    # ✅ Validar token_version en el refresh token también
+    token_version_in_jwt = payload.get("tv")
+    if token_version_in_jwt is not None and int(token_version_in_jwt) != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesión expirada. Otro dispositivo inició sesión con este usuario.",
+        )
+
+    # No incrementamos token_version en refresh (solo en login)
+    return TokenResponse(**generate_tokens_for_user(user, db=None))
 
 
 @router.get("/me")

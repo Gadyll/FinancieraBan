@@ -31,6 +31,11 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), nullable=False, default=UserRole.USER)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
+    # ✅ Sesión única concurrente:
+    # Se incrementa en cada login; el token lleva esta versión en el payload.
+    # Si alguien más inicia sesión, token_version sube y el token anterior queda inválido.
+    token_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+
     # Auditoría
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
