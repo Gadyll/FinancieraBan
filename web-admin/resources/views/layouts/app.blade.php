@@ -137,6 +137,20 @@
 {{-- ══════════════ MAIN ══════════════ --}}
 <main class="page">
     <div class="container">
+        @if(session('ok'))
+            <div style="background: rgba(18,169,138,.1); border: 1px solid rgba(18,169,138,.3); color: #0e8568; padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: .9rem; font-weight: 600;">
+                {{ session('ok') }}
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div style="background: rgba(224,58,58,.1); border: 1px solid rgba(224,58,58,.3); color: #c02020; padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: .9rem; font-weight: 600;">
+                @foreach($errors->all() as $err)
+                    <div style="margin-bottom: 4px;">{{ $err }}</div>
+                @endforeach
+            </div>
+        @endif
+
         @yield('content')
     </div>
 </main>

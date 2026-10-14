@@ -105,18 +105,66 @@
             </div>
             <div class="card-body">
 
-                {{-- Cliente --}}
-                <div class="field">
-                    <label class="field-label field-required">Cliente</label>
-                    <select class="field-input field-select" id="client_id" name="client_id" required>
-                        <option value="">— Selecciona el cliente —</option>
-                        @foreach($clients as $c)
-                            <option value="{{ $c['id'] }}"
-                                {{ (old('client_id', $selectedClientId) == $c['id']) ? 'selected' : '' }}>
-                                {{ $c['full_name'] }} — {{ $c['client_number'] ?? '#'.$c['id'] }}
-                            </option>
-                        @endforeach
-                    </select>
+                {{-- Cliente Select Oculto --}}
+                <select id="client_id" name="client_id" required style="display:none;">
+                    <option value="">— Selecciona el cliente —</option>
+                    @foreach($clients as $c)
+                        @php
+                            $cname = $c['full_name'] ?? '';
+                            $cnum = $c['client_number'] ?? '#'.$c['id'];
+                            $cphone = $c['phone'] ?? '';
+                            $occ = $c['occupation'] ?? '';
+                        @endphp
+                        <option value="{{ $c['id'] }}" 
+                            data-name="{{ $cname }}" 
+                            data-num="{{ $cnum }}" 
+                            data-phone="{{ $cphone }}" 
+                            data-occ="{{ $occ }}"
+                            {{ (old('client_id', $selectedClientId) == $c['id']) ? 'selected' : '' }}>
+                            {{ $cname }} — {{ $cnum }}
+                        </option>
+                    @endforeach
+                </select>
+
+                {{-- Buscador de Cliente Interactivo --}}
+                <div class="field" style="position: relative; margin-bottom:1.5rem;">
+                    <label class="field-label field-required">Cliente a asignar</label>
+
+                    {{-- Tarjeta de cliente seleccionado (Visible si hay un cliente) --}}
+                    <div id="clientSelectedCard" style="display: {{ old('client_id', $selectedClientId) ? 'flex' : 'none' }}; align-items:center; justify-content:space-between; background:var(--bg-1); border:2px solid var(--blue); border-radius:8px; padding:.85rem 1rem; cursor:default; box-shadow: 0 4px 15px rgba(0,184,217,0.1);">
+                        <div style="display:flex; align-items:center; gap:1rem;">
+                            <div style="width:42px; height:42px; background:rgba(0,184,217,0.15); color:var(--blue); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <div style="flex:1; overflow:hidden;">
+                                <div id="selClientName" style="font-weight:800; color:var(--text); font-size:1.05rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Cliente</div>
+                                <div style="display:flex; align-items:center; gap:.5rem; margin-top:.2rem; font-size:.8rem; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    <span class="badge badge-gray" id="selClientNum" style="padding:.1rem .4rem;">#</span>
+                                    <span id="selClientPhone">📞</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="clearClientSelection()" style="color:var(--text-2); padding:.35rem .6rem; flex-shrink:0;">
+                            Cambiar <span style="font-size:1.1rem; margin-left:.25rem;">×</span>
+                        </button>
+                    </div>
+
+                    {{-- Buscador (Visible si NO hay cliente seleccionado) --}}
+                    <div id="clientSearchWrapper" style="display: {{ old('client_id', $selectedClientId) ? 'none' : 'block' }}; position:relative;">
+                        <svg class="field-icon" style="position:absolute; left:.9rem; top:50%; transform:translateY(-50%); width:20px; height:20px; color:var(--text-3); pointer-events:none;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" class="field-input" id="clientSearchInput" placeholder="🔍 Buscar por nombre, N° de cliente o teléfono..." style="padding-left: 2.75rem; background: var(--bg-1);" autocomplete="off">
+                        
+                        {{-- Dropdown de resultados --}}
+                        <div id="clientDropdown" style="display:none; position:absolute; width:100%; top:100%; left:0; margin-top:.4rem; max-height:280px; overflow-y:auto; background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; z-index:100; box-shadow:0 8px 30px rgba(0,0,0,0.6);">
+                            <div id="clientDropdownList" style="display:flex; flex-direction:column; padding:.35rem;">
+                                <!-- Resultados JS -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="section-title" style="margin-top:1.5rem;">
@@ -525,6 +573,138 @@
             numPayHint.textContent = 'Mín. ' + minPays[f] + ' · Máx. ' + maxPays[f];
             numPays.min = minPays[f];
             numPays.max = maxPays[f];
+        }
+    }
+
+    // ==========================================
+    // CLIENT SEARCH DROPDOWN LOGIC
+    // ==========================================
+    var clientSelect      = document.getElementById('client_id');
+    var clientSearchWrap  = document.getElementById('clientSearchWrapper');
+    var clientSearchInput = document.getElementById('clientSearchInput');
+    var clientDropdown    = document.getElementById('clientDropdown');
+    var clientList        = document.getElementById('clientDropdownList');
+    
+    var clientCard        = document.getElementById('clientSelectedCard');
+    var selClientName     = document.getElementById('selClientName');
+    var selClientNum      = document.getElementById('selClientNum');
+    var selClientPhone    = document.getElementById('selClientPhone');
+
+    var allClients = [];
+    if (clientSelect) {
+        var options = clientSelect.querySelectorAll('option');
+        for (var i=1; i<options.length; i++) {
+            var opt = options[i];
+            allClients.push({
+                val: opt.value,
+                name: opt.getAttribute('data-name') || '',
+                num: opt.getAttribute('data-num') || '',
+                phone: opt.getAttribute('data-phone') || '',
+                occ: opt.getAttribute('data-occ') || '',
+                label: opt.textContent.trim()
+            });
+        }
+    }
+
+    function removeAccents(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function renderClientDropdown(query) {
+        var q = removeAccents(query.toLowerCase().trim());
+        clientList.innerHTML = '';
+        var matches = 0;
+        
+        for (var i=0; i<allClients.length; i++) {
+            var c = allClients[i];
+            var matchText = removeAccents(c.name + ' ' + c.num + ' ' + c.phone + ' ' + c.occ).toLowerCase();
+            if (!q || matchText.includes(q)) {
+                matches++;
+                var item = document.createElement('div');
+                item.className = 'client-dd-item';
+                item.style.cssText = 'padding:.6rem .8rem; cursor:pointer; border-radius:6px; margin-bottom:.15rem; display:flex; align-items:center; gap:.75rem; transition:background .15s;';
+                
+                var phoneHtml = c.phone ? '<span style="margin-right:.5rem;">📞 ' + c.phone + '</span>' : '';
+                var occHtml = c.occ ? '<span>💼 ' + c.occ + '</span>' : '';
+                
+                item.innerHTML = `
+                    <div style="width:34px; height:34px; background:rgba(0,184,217,0.1); color:var(--blue); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <div style="flex:1; overflow:hidden;">
+                        <div style="font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</div>
+                        <div style="font-size:.75rem; color:var(--text-2); display:flex; align-items:center; gap:.4rem; margin-top:.15rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            <span class="badge badge-gray" style="padding:0 .25rem; font-size:.65rem;">${c.num}</span>
+                            ${phoneHtml}${occHtml}
+                        </div>
+                    </div>
+                `;
+                
+                item.addEventListener('mouseenter', function() { this.style.background = 'var(--bg-2)'; });
+                item.addEventListener('mouseleave', function() { this.style.background = 'transparent'; });
+                
+                // Closure
+                (function(client){
+                    item.addEventListener('click', function(e){
+                        e.stopPropagation();
+                        selectClient(client.val, client.name, client.num, client.phone);
+                    });
+                })(c);
+                
+                clientList.appendChild(item);
+            }
+        }
+        
+        if (matches === 0) {
+            clientList.innerHTML = '<div style="padding:1rem; text-align:center; color:var(--text-3); font-size:.85rem; font-style:italic;">No se encontraron clientes que coincidan.</div>';
+        }
+    }
+
+    function selectClient(id, name, num, phone) {
+        if(clientSelect) clientSelect.value = id;
+        clientSearchInput.value = '';
+        clientDropdown.style.display = 'none';
+        
+        selClientName.textContent = name;
+        selClientNum.textContent = num;
+        selClientPhone.textContent = phone ? '📞 ' + phone : '';
+        
+        clientSearchWrap.style.display = 'none';
+        clientCard.style.display = 'flex';
+    }
+
+    window.clearClientSelection = function() {
+        if(clientSelect) clientSelect.value = '';
+        clientCard.style.display = 'none';
+        clientSearchWrap.style.display = 'block';
+        clientSearchInput.value = '';
+        clientSearchInput.focus();
+        renderClientDropdown('');
+    };
+
+    if (clientSearchInput) {
+        clientSearchInput.addEventListener('focus', function(){
+            clientDropdown.style.display = 'block';
+            renderClientDropdown(this.value);
+        });
+        clientSearchInput.addEventListener('input', function(){
+            clientDropdown.style.display = 'block';
+            renderClientDropdown(this.value);
+        });
+        document.addEventListener('click', function(e){
+            if(!clientSearchWrap.contains(e.target)) {
+                clientDropdown.style.display = 'none';
+            }
+        });
+    }
+
+    // Si hay valor pre-seleccionado
+    if (clientSelect && clientSelect.value) {
+        var preSel = allClients.find(function(c){ return c.val == clientSelect.value; });
+        if(preSel) {
+            selectClient(preSel.val, preSel.name, preSel.num, preSel.phone);
         }
     }
 

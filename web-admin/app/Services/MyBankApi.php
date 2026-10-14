@@ -23,18 +23,35 @@ class MyBankApi
 
     private function ok($response): array
     {
+        if ($response instanceof \Throwable) {
+            return [
+                'ok' => false,
+                'status' => 503,
+                'data' => ['detail' => 'Error de conexión con el backend API: ' . $response->getMessage()],
+            ];
+        }
+
+        $data = $response->json();
+        if ($data === null) {
+            $raw = trim($response->body() ?? '');
+            $detail = (!empty($raw) && strlen($raw) < 250)
+                ? $raw
+                : 'Error de respuesta del servidor API (HTTP ' . $response->status() . ').';
+            $data = ['detail' => $detail, 'error' => $detail];
+        }
+
         if ($response->failed()) {
             return [
                 'ok' => false,
                 'status' => $response->status(),
-                'data' => $response->json(),
+                'data' => $data,
             ];
         }
 
         return [
             'ok' => true,
             'status' => $response->status(),
-            'data' => $response->json(),
+            'data' => $data,
         ];
     }
 

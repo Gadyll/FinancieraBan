@@ -36,8 +36,8 @@ def recent_tickets(
         {
             "ticket_number": t.ticket_number,
             "created_at": t.created_at,
-            "loan_id": t.loan_id,
             "payment_id": t.payment_id,
+            "generated_by": t.generated_by,
         }
         for t in tickets
     ]

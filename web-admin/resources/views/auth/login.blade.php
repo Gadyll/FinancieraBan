@@ -171,20 +171,68 @@
   margin-bottom: 1.25rem;
 }
 
-/* Fields */
-.field-group   { margin-bottom: 1.1rem; }
-.field-label   { display: block; font-weight: 700; font-size: .88rem; color: #3a4d65; margin-bottom: .45rem; }
-.field-wrap    { position: relative; display: flex; align-items: center; }
+/* ── Floating Label Fields ── */
+.field-group   { margin-bottom: 1.25rem; }
 
-.field-icon    {
+/* Contenedor flotante */
+.field-float {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Label flotante que actúa como placeholder */
+.field-float-label {
+  position: absolute;
+  left: 2.75rem; /* alineado con el texto (después del ícono) */
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .97rem;
+  color: #8896a8;
+  font-weight: 500;
+  pointer-events: none;
+  transition: top .18s ease, font-size .18s ease, color .18s ease, transform .18s ease, left .18s ease;
+  white-space: nowrap;
+  line-height: 1;
+  z-index: 2;
+  background: transparent;
+  padding: 0 2px;
+}
+
+/* Estado: label sube cuando el input tiene foco o está relleno */
+.field-float .field-input:focus ~ .field-float-label,
+.field-float .field-input.has-value ~ .field-float-label {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: .73rem;
+  font-weight: 700;
+  color: #1a6fcf;
+  left: .85rem;
+  background: #fff;
+  padding: 0 5px;
+}
+
+/* Ajuste para cuando hay valor pero no focus */
+.field-float .field-input.has-value:not(:focus) ~ .field-float-label {
+  color: #4a6080;
+}
+
+.field-icon {
   position: absolute; left: .9rem;
   width: 20px; height: 20px;
   color: #6b7e96; flex-shrink: 0; pointer-events: none;
+  transition: color .18s;
+  z-index: 3; /* sobre el input para visibilidad */
+}
+/* Ícono cambia de color cuando el input tiene focus.
+   Orden en DOM: input → label → icon (~ selecciona hermanos siguientes) */
+.field-float .field-input:focus ~ .field-float-label ~ .field-icon {
+  color: #1a6fcf;
 }
 
 .field-input {
   width: 100%;
-  padding: .80rem 1rem .80rem 2.75rem !important;
+  padding: 1.1rem 1rem .5rem 2.75rem !important;
   border: 1.5px solid rgba(26,111,207,.16);
   border-radius: 12px;
   background: #f8faff;
@@ -194,6 +242,8 @@
   outline: none;
   transition: border-color .18s, box-shadow .18s, background .18s;
   -ms-reveal: none;
+  /* Placeholder vacío para no interferir con floating label */
+  caret-color: #1a6fcf;
 }
 .field-input::-ms-reveal,
 .field-input::-ms-clear { display: none; }
@@ -201,7 +251,8 @@
   -webkit-box-shadow: 0 0 0 100px #f8faff inset !important;
   -webkit-text-fill-color: #0d1b2e !important;
 }
-.field-input::placeholder { color: #6b7e96; }
+/* Sin placeholder visible — lo reemplaza el floating label */
+.field-input::placeholder { color: transparent; }
 .field-input:focus {
   border-color: #1a6fcf;
   background: #fff;
@@ -219,6 +270,7 @@
   display: flex; align-items: center;
   transition: color .15s;
   line-height: 1;
+  z-index: 4;
 }
 .field-eye:hover { color: #1a6fcf; }
 
@@ -226,6 +278,7 @@
 .form-foot-row {
   display: flex; align-items: center; justify-content: space-between;
   margin: 1rem 0 1.4rem 0; gap: 1rem;
+  flex-wrap: wrap;
 }
 .remember-label {
   display: flex; align-items: center; gap: .5rem;
@@ -291,14 +344,21 @@
   display: flex; align-items: center; justify-content: center;
   gap: .45rem; margin-top: 1.1rem;
   font-size: .82rem; color: #6b7e96; font-weight: 500;
+  flex-wrap: wrap; text-align: center;
 }
 .sec-note svg { color: #12a98a; }
 
-/* Responsive */
-@media (max-width: 780px) {
-  .auth-shell            { grid-template-columns: 1fr; }
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .auth-shell            { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .auth-wrap             { padding: 1rem .75rem; align-items: flex-start; }
+  .auth-shell            { grid-template-columns: 1fr; border-radius: 16px; }
   .auth-hero             { display: none; }
-  .auth-form-side        { padding: 0 1.5rem 2rem 1.5rem; }
+  .auth-form-side        { padding: 0 1.25rem 2rem 1.25rem; }
+  .form-accent-bar       { margin: 0 -1.25rem 1.5rem -1.25rem; }
+  .form-title            { font-size: 1.4rem; }
 }
 </style>
 @endpush
@@ -368,39 +428,41 @@
 
         <!-- Usuario -->
         <div class="field-group">
-          <label class="field-label" for="username">Usuario</label>
-          <div class="field-wrap">
-            <svg class="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>
-            </svg>
+          <label class="field-label" for="username" style="display:block;margin-bottom:.4rem;font-weight:600;font-size:.85rem;color:var(--text-2);">Usuario</label>
+          <div style="position:relative;">
             <input
               id="username" name="username" type="text"
-              class="field-input"
-              placeholder="admin"
+              class="field-input{{ old('username') ? ' has-value' : '' }}"
+              placeholder="Ingresa tu usuario"
               value="{{ old('username') }}"
               autocomplete="off"
               required
+              style="padding-left: 2.5rem;"
             >
+            <svg class="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="position:absolute;left:.8rem;top:50%;transform:translateY(-50%);width:18px;color:var(--muted);">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>
+            </svg>
           </div>
         </div>
 
         <!-- Contraseña -->
         <div class="field-group">
-          <label class="field-label" for="password">Contrase&ntilde;a</label>
-          <div class="field-wrap">
-            <svg class="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
+          <label class="field-label" for="password" style="display:block;margin-bottom:.4rem;font-weight:600;font-size:.85rem;color:var(--text-2);">Contraseña</label>
+          <div style="position:relative;">
             <input
               id="password" name="password" type="password"
               class="field-input field-input--pass"
-              placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+              placeholder="Ingresa tu contraseña"
               autocomplete="new-password"
               required
+              style="padding-left: 2.5rem; padding-right: 3rem;"
             >
-            <button type="button" class="field-eye" id="togglePassword" aria-label="Mostrar contrase&ntilde;a">
+            <svg class="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="position:absolute;left:.8rem;top:50%;transform:translateY(-50%);width:18px;color:var(--muted);">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            <button type="button" class="field-eye" id="togglePassword" aria-label="Mostrar contrase&ntilde;a" style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);padding:.25rem;">
               <svg id="eyeIcon" width="18" height="18" fill="none" viewBox="0 0 24 24"
                    stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -455,6 +517,26 @@ document.addEventListener("DOMContentLoaded", function () {
   var btnSpinner    = document.getElementById("btnSpinner");
   var btnArrow      = document.getElementById("btnArrow");
 
+  /* ── Floating Labels: marcar has-value según contenido ── */
+  function syncFloatLabel(input) {
+    if (input.value && input.value.trim() !== '') {
+      input.classList.add('has-value');
+    } else {
+      input.classList.remove('has-value');
+    }
+  }
+
+  [usernameInput, passwordInput].forEach(function(inp) {
+    if (!inp) return;
+    // Estado inicial (ej: old() o localStorage)
+    syncFloatLabel(inp);
+    inp.addEventListener('input', function() { syncFloatLabel(inp); });
+    inp.addEventListener('change', function() { syncFloatLabel(inp); });
+    // Para autofill del navegador (puede tardar un frame)
+    setTimeout(function() { syncFloatLabel(inp); }, 150);
+  });
+
+  /* ── Toggle Contraseña ── */
   toggleBtn.addEventListener("click", function () {
     var show = (passwordInput.type === "password");
     passwordInput.type = show ? "text" : "password";
@@ -463,12 +545,19 @@ document.addEventListener("DOMContentLoaded", function () {
       : '<path stroke-linecap="round" stroke-linejoin="round" d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>';
   });
 
+  /* ── Remember user ── */
   var saved = localStorage.getItem("mybank_user");
-  if (saved) { usernameInput.value = saved; rememberCheck.checked = true; }
-  
-  // Clean ghost password
-  passwordInput.value = "";
+  if (saved) {
+    usernameInput.value = saved;
+    rememberCheck.checked = true;
+    syncFloatLabel(usernameInput);
+  }
 
+  /* ── Limpiar contraseña fantasma ── */
+  passwordInput.value = "";
+  syncFloatLabel(passwordInput);
+
+  /* ── Submit: spinner ── */
   form.addEventListener("submit", function () {
     loginBtn.disabled        = true;
     btnLabel.textContent     = "Verificando...";

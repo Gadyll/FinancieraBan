@@ -13,6 +13,7 @@ from app.core.security import hash_password
 from app.models.user import User, UserRole
 from app.models.payment import Payment
 from app.schemas.user import UserCreate, UserOut
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -149,9 +150,9 @@ def delete_user(
 # POST /users/{user_id}/reset-password
 # Solo ADMIN, permite asignar una contraseña personalizada.
 # =========================
-from pydantic import BaseModel
 class ResetPasswordRequest(BaseModel):
     new_password: str
+
 
 @router.post("/{user_id}/reset-password")
 def reset_password(

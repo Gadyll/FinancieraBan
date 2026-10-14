@@ -41,12 +41,28 @@ Este documento contiene las instrucciones paso a paso para desplegar la solució
 
 3. **Configurar archivo `.env` en `backend-api/.env`:**
    ```env
-   PROJECT_NAME=FinancieraBan API
-   DATABASE_URL=mysql+pymysql://financieraban_user:[TuContraseñaSegura]@127.0.0.1:3306/financieraban_prod
-   SECRET_KEY=[GenerarClaveSecreta32Caracteres]
-   ALGORITHM=HS256
-   ACCESS_TOKEN_EXPIRE_MINUTES=43200
-   ALLOWED_ORIGINS=https://admin.tudominio.com,https://api.tudominio.com
+   APP_NAME=FinancieraBan API
+   ENV=production
+   DEBUG=False
+
+   JWT_SECRET=[GenerarClaveSecretaMinimo32Caracteres]
+   JWT_ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   REFRESH_TOKEN_EXPIRE_DAYS=14
+
+   DB_URL=mysql+pymysql://financieraban_user:[TuContraseñaSegura]@127.0.0.1:3306/financieraban_prod
+
+   CORS_ORIGINS=https://admin.tudominio.com,https://api.tudominio.com
+
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_TLS=True
+   SMTP_USER=tu_correo@gmail.com
+   SMTP_PASSWORD=tu_app_password
+   SMTP_FROM=FinancieraBan <tu_correo@gmail.com>
+
+   OTP_EXPIRE_MINUTES=5
+   OTP_MAX_ATTEMPTS=5
    ```
 
 4. **Crear Servicio Systemd para FastAPI (`/etc/systemd/system/financieraban-api.service`):**
@@ -83,11 +99,37 @@ Este documento contiene las instrucciones paso a paso para desplegar la solució
    APP_NAME=FinancieraBan
    APP_ENV=production
    APP_DEBUG=false
+   APP_KEY=
    APP_URL=https://admin.tudominio.com
+
+   # Base de datos propia de Laravel para Sesiones y Auditoría
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=financieraban_admin
+   DB_USERNAME=financieraban_user
+   DB_PASSWORD=[TuContraseñaSegura]
+
+   SESSION_DRIVER=database
+   SESSION_LIFETIME=120
+   CACHE_STORE=database
+
    MYBANK_API_URL=http://127.0.0.1:8000/api/v1
    ```
 
-3. **Instalar dependencias y compilar assets:**
+3. **Generar clave y permisos de almacenamiento:**
+   ```bash
+   php artisan key:generate --force
+   php artisan migrate --force
+
+   # Permisos vitales para evitar errores de escritura (PDFs, logs y cache)
+   sudo chown -R www-data:www-data /var/www/financieraban
+   sudo chmod -R 775 /var/www/financieraban/backend-api/storage
+   sudo chmod -R 775 /var/www/financieraban/web-admin/storage
+   sudo chmod -R 775 /var/www/financieraban/web-admin/bootstrap/cache
+   ```
+
+4. **Instalar dependencias y compilar assets:**
    ```bash
    composer install --no-dev --optimize-autoloader
    npm install && npm run build
@@ -106,6 +148,7 @@ Ejemplo de `/etc/nginx/sites-available/financieraban.conf`:
 # API Backend FastAPI
 server {
     server_name api.tudominio.com;
+    client_max_body_size 25M;
 
     location / {
         proxy_pass http://127.0.0.1:8000;
@@ -120,6 +163,7 @@ server {
 server {
     server_name admin.tudominio.com;
     root /var/www/financieraban/web-admin/public;
+    client_max_body_size 25M;
 
     index index.php;
 
@@ -142,7 +186,26 @@ sudo certbot --nginx -d admin.tudominio.com -d api.tudominio.com
 
 ---
 
-## 5. Compilación de la App Móvil (Expo Android / iOS)
+## 5. Respaldos Automáticos Diarios (Backups de Seguridad)
+
+Para respaldar automáticamente la base de datos financiera todas las noches a las 2:00 AM:
+
+1. Crear carpeta de respaldos:
+   ```bash
+   sudo mkdir -p /var/backups/financieraban
+   sudo chmod 700 /var/backups/financieraban
+   ```
+
+2. Agregar tarea programada al crontab (`sudo crontab -e`):
+   ```cron
+   0 2 * * * mysqldump -u financieraban_user -p'TuContraseñaSegura' financieraban_api | gzip > /var/backups/financieraban/api_$(date +\%F).sql.gz
+   5 2 * * * mysqldump -u financieraban_user -p'TuContraseñaSegura' financieraban_admin | gzip > /var/backups/financieraban/admin_$(date +\%F).sql.gz
+   0 3 * * 0 find /var/backups/financieraban/ -type f -name "*.sql.gz" -mtime +30 -delete
+   ```
+
+---
+
+## 6. Compilación de la App Móvil (Expo Android / iOS)
 
 1. **Configurar URL de Producción en `mobile-app/constants/config.ts`:**
    ```typescript

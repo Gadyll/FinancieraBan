@@ -55,7 +55,7 @@ class LoansController extends Controller
         }
 
         // Traer clientes activos (con préstamo activo o sin préstamo)
-        $clientsRes = $api->clients($accessToken, 0, 500);
+        $clientsRes = $api->clients($accessToken, 0, 1000);
         $clients = [];
         if ($clientsRes['ok'] && is_array($clientsRes['data'])) {
             $clients = $clientsRes['data'];

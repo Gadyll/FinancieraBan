@@ -1193,7 +1193,26 @@ hr.divider {
   box-sizing: border-box !important;
 }
 
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Sistema de Media Queries Completo
+   Breakpoints: 480px (xs), 640px (sm), 768px (md), 1024px (lg)
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Tablet / small desktop (≤ 1024px) ── */
+@media (max-width: 1024px) {
+  .container { padding: 0 1rem; }
+  .page { padding: 1.25rem 0 2rem; }
+  .metric-card { padding: 1rem 1.1rem; }
+  .metric-value { font-size: 1.6rem; }
+  /* Collapsible filters: allow more height on tablet */
+  .collapsible-filters.show { max-height: 450px; }
+  /* Grid reducido en tablet */
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Mobile (≤ 768px) ── */
 @media (max-width: 768px) {
+  /* Page header: columna */
   .page-header {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -1202,7 +1221,104 @@ hr.divider {
   .page-header > div {
     width: 100% !important;
   }
+  .page-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Topbar */
   .topbar-inner {
     padding: 0 0.85rem;
+    height: 56px;
   }
+
+  /* Metric cards: grid de 2 columnas */
+  .metric-grid,
+  .metrics-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.65rem !important;
+  }
+  .metric-card {
+    padding: 0.85rem 1rem;
+    gap: 0.65rem;
+  }
+  .metric-icon { width: 40px; height: 40px; }
+  .metric-value { font-size: 1.4rem; }
+  .metric-label { font-size: .72rem; }
+
+  /* Cards */
+  .card-head {
+    padding: 0.85rem 1rem;
+    gap: 0.65rem;
+  }
+  .card-body { padding: 1rem; }
+
+  /* Search bar */
+  .search-bar {
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+  }
+
+  /* Tabla: forzar scroll horizontal */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tbl { font-size: .83rem; min-width: 580px; }
+  .tbl th { padding: 0.75rem 0.85rem; font-size: .70rem; }
+  .tbl td { padding: 0.75rem 0.85rem; }
+
+  /* Drawer: pantalla completa en móvil */
+  .drawer { width: 100vw; }
+  .drawer-body { padding: 1rem; }
+  .drawer-foot { gap: 8px; }
+  .drawer-foot .btn { flex: 1; justify-content: center; }
+
+  /* Grids */
+  .grid-2, .grid-3 { grid-template-columns: 1fr !important; }
+
+  /* Botones: evitar overflow */
+  .btn-group { flex-wrap: wrap; gap: 0.5rem; }
+
+  /* Toast: ancho completo */
+  .toast-container { right: 12px; left: 12px; }
+  .myb-toast { min-width: auto; max-width: 100%; }
+
+  /* Collapsible filters */
+  .collapsible-filters.show { max-height: 600px; }
+
+  /* Meatball dropdown: abrir hacia arriba en filas bajas */
+  .tbl tbody tr:last-child .meatball-dropdown,
+  .tbl tbody tr:nth-last-child(2) .meatball-dropdown {
+    top: auto;
+    bottom: calc(100% + 4px);
+  }
+
+  /* Assign inline: apilar en móvil */
+  .assign-inline { flex-wrap: wrap; }
+  .assign-inline select { min-width: 100%; }
 }
+
+/* ── Móvil pequeño (≤ 480px) ── */
+@media (max-width: 480px) {
+  /* Un solo column para métricas */
+  .metric-grid,
+  .metrics-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .page-title { font-size: 1.35rem; }
+  .topbar-inner { height: 52px; }
+
+  /* Eliminar padding excesivo en la página */
+  .page { padding: 0.85rem 0 1.5rem; }
+  .container { padding: 0 0.75rem; }
+
+  /* Card head: columna si hay muchos elementos */
+  .card-head { flex-direction: column; align-items: flex-start; }
+
+  /* Tabla más compacta */
+  .tbl th { padding: 0.6rem 0.7rem; }
+  .tbl td { padding: 0.6rem 0.7rem; }
+}
+

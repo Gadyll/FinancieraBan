@@ -134,8 +134,10 @@ def create_payment_ticket_pdf(
     payment_method: str | None,
     notes: str | None,
     generated_by: str,
-    base_dir: str,
+    base_dir: str | None = None,
 ) -> tuple[Payment, Ticket, list[dict], str]:
+    if not base_dir:
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     """
     Transacción:
     1) valida loan

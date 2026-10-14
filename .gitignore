@@ -1,0 +1,42 @@
+# Environments & Credentials
+.env
+.env.backup
+.env.production
+.env.local
+
+# Python / Virtual Environment
+**/venv/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite
+*.db
+
+# Node / Frontend
+**/node_modules/
+**/dist/
+**/.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Laravel
+**/web-admin/storage/*.key
+**/web-admin/storage/framework/cache/*
+**/web-admin/storage/framework/sessions/*
+**/web-admin/storage/framework/views/*
+**/web-admin/bootstrap/cache/*
+!**/web-admin/storage/framework/cache/.gitignore
+!**/web-admin/storage/framework/sessions/.gitignore
+!**/web-admin/storage/framework/views/.gitignore
+!**/web-admin/bootstrap/cache/.gitignore
+
+# Generated Files / Storage
+**/backend-api/storage/tickets/*.pdf
+!**/backend-api/storage/tickets/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

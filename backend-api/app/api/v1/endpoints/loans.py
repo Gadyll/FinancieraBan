@@ -24,6 +24,48 @@ router = APIRouter(prefix="/loans")
 
 
 # =========================
+# TABLA DE TASAS OFICIAL  ← DEBE IR ANTES DE /{loan_id}
+# =========================
+@router.get(
+    "/rate-table",
+    summary="Tabla de tasas oficial",
+)
+def get_rate_table(
+    _user: User = Depends(get_current_user),
+):
+    """
+    Retorna la tabla oficial de tasas de interés.
+    Cada entrada: { rate: "5.40", factor: "76.00" }
+    """
+    return [
+        {"rate": rate, "factor": str(factor)}
+        for rate, factor in sorted(TABLA_TASAS.items(), key=lambda x: float(x[0]))
+    ]
+
+
+# =========================
+# USER: MY LOANS  ← DEBE IR ANTES DE /{loan_id}
+# =========================
+@router.get("/my/list", response_model=list[LoanOut])
+def my_loans(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != UserRole.USER:
+        raise HTTPException(status_code=403, detail="Solo USER puede acceder a /loans/my/list")
+
+    # loans cuyos clientes están asignados a este cobrador
+    return (
+        db.query(Loan)
+        .join(ClientAssignment, ClientAssignment.client_id == Loan.client_id)
+        .filter(ClientAssignment.user_id == current_user.id)
+        .filter(ClientAssignment.is_active == True)  # noqa
+        .order_by(Loan.id.desc())
+        .all()
+    )
+
+
+# =========================
 # CREATE LOAN + SCHEDULE (ADMIN & USER)
 # =========================
 @router.post("", response_model=LoanOut, status_code=status.HTTP_201_CREATED)
@@ -117,26 +159,7 @@ def get_schedule(
     return schedule
 
 
-# =========================
-# USER: MY LOANS (por clientes asignados)
-# =========================
-@router.get("/my/list", response_model=list[LoanOut])
-def my_loans(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.role != UserRole.USER:
-        raise HTTPException(status_code=403, detail="Solo USER puede acceder a /loans/my/list")
 
-    # loans cuyos clients están asignados a este cobrador
-    return (
-        db.query(Loan)
-        .join(ClientAssignment, ClientAssignment.client_id == Loan.client_id)
-        .filter(ClientAssignment.user_id == current_user.id)
-        .filter(ClientAssignment.is_active == True)  # noqa
-        .order_by(Loan.id.desc())
-        .all()
-    )
 
 @router.get("/{loan_id}/summary", response_model=LoanSummaryOut)
 def loan_summary(
@@ -334,22 +357,3 @@ def pay_surcharge(
     db.refresh(surcharge)
     return surcharge
 
-
-# =========================
-# TABLA DE TASAS OFICIAL
-# =========================
-@router.get(
-    "/rate-table",
-    summary="Tabla de tasas oficial",
-)
-def get_rate_table(
-    _user: User = Depends(get_current_user),
-):
-    """
-    Retorna la tabla oficial de tasas de interés.
-    Cada entrada: { rate: "5.40", factor: "76.00" }
-    """
-    return [
-        {"rate": rate, "factor": str(factor)}
-        for rate, factor in sorted(TABLA_TASAS.items(), key=lambda x: float(x[0]))
-    ]
